@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Circuit Schematic Drawing Tool</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+    #canvasContainer {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 90vh;
+    }
+    #toolbar {
+      background: #f0f0f0;
+      padding: 20px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      border-radius: 8px 0 0 8px;
+      box-shadow: 2px 0 8px #0001;
+  height: auto;
+  justify-content: flex-start;
+      align-items: center;
+      margin-right: 0;
+    }
+    canvas {
+      border: 1px solid #888;
+      background: #fff;
+      display: block;
+    }
+    button {
+      padding: 10px 18px;
+      font-size: 1rem;
+      border-radius: 4px;
+      border: 1px solid #bbb;
+      background: #fafafa;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button.selected {
+      background: orange;
+      color: #fff;
+      border-color: #e67e22;
+    }
+    button:hover {
+      background: #e0e0e0;
+    }
+    #analysisbar {
+      background: #f0f0f0;
+      padding: 20px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      border-radius: 0 8px 8px 0;
+      box-shadow: -2px 0 8px #0001;
+      height: auto;
+      justify-content: flex-start;
+      align-items: center;
+      margin-left: 0;
+    }
+    #analysisbar button {
+      padding: 10px 18px;
+      font-size: 1rem;
+      border-radius: 4px;
+      border: 1px solid #bbb;
+      background: #fafafa;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #analysisbar button:hover {
+      background: #e0e0e0;
+    }
+  </style>
+</head>
+<body>
+  <h1 style="text-align:center; font-family:Arial,sans-serif; margin-top:16px; margin-bottom:8px; font-size:2.2rem; color:#333;">Circuit Designer</h1>
+  <div id="canvasContainer">
+  <div id="toolbar">
+  <button onclick="setTool('select')">Select Component</button>
+  <button onclick="setTool('selectNode')">Select Node</button>
+      <button onclick="setTool('wire')">Wire</button>
+      <button onclick="setTool('resistor')">Resistor</button>
+      <button onclick="setTool('capacitor')">Capacitor</button>
+      <button onclick="setTool('battery')">Battery</button>
+      <button onclick="setTool('erase')">Erase</button>
+      <button onclick="clearCanvas()">Clear</button>
+      <button onclick="exportCircuit()">Export</button>
+      <button onclick="importCircuit()">Import</button>
+    </div>
+    <input type="file" id="importFileInput" style="display:none" accept="application/json">
+    <canvas id="schematicCanvas" width="900" height="600"></canvas>
+    <div id="analysisbar">
+      <button onclick="nodeAnalysis()">Node Analysis</button>
+      <div id="nodeResults" style="margin-top:20px; width:160px;">
+        <div><b>Voltage:</b> <span id="voltageResult">-</span></div>
+        <div><b>Resistance:</b> <span id="resistanceResult">-</span></div>
+        <div><b>Impedance:</b> <span id="impedanceResult">-</span></div>
+      </div>
+    </div>
+  </div>
+  <script>
+  // Add selectNode tool logic (no-op for now)
+  // You can implement node selection logic as needed
+    function nodeAnalysis() {
+      // Example: fill sidebar with dummy values if a node is selected
+      if (selectedNode) {
+        document.getElementById('voltageResult').textContent = '5 V';
+        document.getElementById('resistanceResult').textContent = '10 Ω';
+        document.getElementById('impedanceResult').textContent = '10 Ω';
+      } else {
+        document.getElementById('voltageResult').textContent = '-';
+        document.getElementById('resistanceResult').textContent = '-';
+        document.getElementById('impedanceResult').textContent = '-';
+        alert('Select a node first.');
+      }
+    }
+    function exportCircuit() {
+      const data = JSON.stringify(elements, null, 2);
+      const blob = new Blob([data], {type: 'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'circuit.json';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 0);
+    }
+
+    function importCircuit() {
+      document.getElementById('importFileInput').click();
+    }
+
+    document.getElementById('importFileInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const data = JSON.parse(evt.target.result);
+          if (Array.isArray(data)) {
+            undoStack.push([...elements]);
+            redoStack = [];
+            elements = data;
+            redraw();
+          } else {
+            alert('Invalid circuit file.');
+          }
+        } catch (err) {
+          alert('Error reading file: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+      // Reset input so same file can be imported again if needed
+      e.target.value = '';
+    });
+    const canvas = document.getElementById('schematicCanvas');
+    const ctx = canvas.getContext('2d');
+    let tool = 'wire';
+    let drawing = false;
+    let startX, startY;
+  let elements = [];
+  let undoStack = [];
+  let redoStack = [];
+  // Node selection and highlight logic
+  let selectedNode = null;
+
+    function setTool(t) {
+      tool = t;
+      // Highlight selected button
+      const toolbar = document.getElementById('toolbar');
+      for (const btn of toolbar.querySelectorAll('button')) {
+        btn.classList.remove('selected');
+      }
+      const btns = toolbar.querySelectorAll('button');
+      // Map tool to button index
+  const toolOrder = ['select','selectNode','wire','resistor','capacitor','battery','erase','clear'];
+      const idx = toolOrder.indexOf(t);
+      if (idx >= 0 && btns[idx]) btns[idx].classList.add('selected');
+    }
+    // Set initial selected button
+    window.addEventListener('DOMContentLoaded', () => setTool(tool));
+    function clearCanvas() {
+      if (elements.length > 0) {
+        undoStack.push([...elements]);
+        redoStack = [];
+      }
+      elements = [];
+      redraw();
+    }
+
+    function drawWire(x1, y1, x2, y2, label, value) {
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.strokeStyle = '#222';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      if (label || value) drawLabelAndValue(x1, y1, x2, y2, label, value);
+    }
+    function drawResistor(x1, y1, x2, y2, label, value) {
+      // Draw a zigzag resistor between (x1, y1) and (x2, y2)
+      const dx = x2 - x1, dy = y2 - y1;
+      const len = Math.sqrt(dx*dx + dy*dy);
+      const angle = Math.atan2(dy, dx);
+      ctx.save();
+      ctx.translate(x1, y1);
+      ctx.rotate(angle);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(len*0.2, 0);
+      let z = 6, amp = 10;
+      for (let i = 1; i <= z; i++) {
+        ctx.lineTo(len*0.2 + (len*0.6/z)*i, (i%2 ? -amp : amp));
+      }
+      ctx.lineTo(len*0.8, 0);
+      ctx.lineTo(len, 0);
+      ctx.strokeStyle = '#b77f00';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+      if (label || value) drawLabelAndValue(x1, y1, x2, y2, label, value);
+    }
+    function drawCapacitor(x1, y1, x2, y2, label, value) {
+      // Draw two parallel lines for capacitor
+      const dx = x2 - x1, dy = y2 - y1;
+      const len = Math.sqrt(dx*dx + dy*dy);
+      const angle = Math.atan2(dy, dx);
+      ctx.save();
+      ctx.translate(x1, y1);
+      ctx.rotate(angle);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(len*0.4, 0);
+      ctx.moveTo(len*0.4, -15);
+      ctx.lineTo(len*0.4, 15);
+      ctx.moveTo(len*0.6, -15);
+      ctx.lineTo(len*0.6, 15);
+      ctx.moveTo(len*0.6, 0);
+      ctx.lineTo(len, 0);
+      ctx.strokeStyle = '#0077b7';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+      if (label || value) drawLabelAndValue(x1, y1, x2, y2, label, value);
+    }
+    function drawBattery(x1, y1, x2, y2, label, value) {
+      // Draw a battery symbol between (x1, y1) and (x2, y2)
+      const dx = x2 - x1, dy = y2 - y1;
+      const len = Math.sqrt(dx*dx + dy*dy);
+      const angle = Math.atan2(dy, dx);
+      ctx.save();
+      ctx.translate(x1, y1);
+      ctx.rotate(angle);
+      // Main line
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(len*0.3, 0);
+      ctx.strokeStyle = '#b70000';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      // Battery plates
+      ctx.beginPath();
+      ctx.moveTo(len*0.3, -16);
+      ctx.lineTo(len*0.3, 16);
+      ctx.moveTo(len*0.38, -10);
+      ctx.lineTo(len*0.38, 10);
+      ctx.strokeStyle = '#b70000';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      // End line
+      ctx.beginPath();
+      ctx.moveTo(len*0.38, 0);
+      ctx.lineTo(len, 0);
+      ctx.strokeStyle = '#b70000';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+      if (label || value) drawLabelAndValue(x1, y1, x2, y2, label, value);
+    }
+    function drawLabelAndValue(x1, y1, x2, y2, label, value) {
+      // Draw label and value offset from the center of the element
+      const mx = (x1 + x2) / 2;
+      const my = (y1 + y2) / 2;
+      // Offset perpendicular to the element
+      const dx = x2 - x1, dy = y2 - y1;
+      const len = Math.sqrt(dx*dx + dy*dy);
+      let ox = 0, oy = 0;
+      if (len > 0) {
+        ox = -dy / len * 18; // 18px perpendicular offset
+        oy = dx / len * 18;
+      }
+      ctx.save();
+      ctx.font = '14px Arial';
+      ctx.fillStyle = '#333';
+      ctx.textAlign = 'center';
+      if (label) ctx.fillText(label, mx + ox, my + oy - 6);
+      if (value) ctx.fillText(value, mx - ox, my - oy + 18);
+      ctx.restore();
+    }
+    function eraseAt(x, y) {
+      // Remove the last element near (x, y)
+      for (let i = elements.length - 1; i >= 0; i--) {
+        const el = elements[i];
+        const dist = Math.abs(el.x1 - x) + Math.abs(el.y1 - y) + Math.abs(el.x2 - x) + Math.abs(el.y2 - y);
+        if (dist < 40) {
+          undoStack.push([...elements]);
+          redoStack = [];
+          elements.splice(i, 1);
+          break;
+        }
+      }
+      redraw();
+    }
+    function drawGrid() {
+      const gridSize = 25;
+      ctx.save();
+      ctx.strokeStyle = '#eee';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < canvas.width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+    function redraw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawGrid();
+      for (const el of elements) {
+        if (el.type === 'wire') drawWire(el.x1, el.y1, el.x2, el.y2, el.label, el.value);
+        if (el.type === 'resistor') drawResistor(el.x1, el.y1, el.x2, el.y2, el.label, el.value);
+        if (el.type === 'capacitor') drawCapacitor(el.x1, el.y1, el.x2, el.y2, el.label, el.value);
+        if (el.type === 'battery') drawBattery(el.x1, el.y1, el.x2, el.y2, el.label, el.value);
+      }
+      // Draw selected node highlight
+      if (selectedNode && tool === 'selectNode') {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(selectedNode.x, selectedNode.y, 10, 0, 2 * Math.PI);
+        ctx.strokeStyle = '#ff6600';
+        ctx.lineWidth = 3;
+        ctx.globalAlpha = 0.7;
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
+        ctx.restore();
+      }
+    }
+    // Helper: find nearest endpoint to (x, y) within snapDist, return {x, y} or null
+    function findNearestEndpoint(x, y, snapDist = 18) {
+      let nearest = null;
+      let minDist = snapDist;
+      for (const el of elements) {
+        const pts = [ [el.x1, el.y1], [el.x2, el.y2] ];
+        for (const [px, py] of pts) {
+          const d = Math.hypot(px - x, py - y);
+          if (d < minDist) {
+            minDist = d;
+            nearest = {x: px, y: py};
+          }
+        }
+      }
+      return nearest;
+    }
+
+    canvas.addEventListener('mousedown', e => {
+      const rect = canvas.getBoundingClientRect();
+      let mx = e.clientX - rect.left;
+      let my = e.clientY - rect.top;
+      // Snap start point if near existing endpoint
+      const snap = findNearestEndpoint(mx, my);
+      if (snap) { mx = snap.x; my = snap.y; }
+      startX = mx;
+      startY = my;
+      drawing = true;
+      if (tool === 'erase') {
+        eraseAt(startX, startY);
+        drawing = false;
+      }
+    });
+    canvas.addEventListener('mouseup', e => {
+      if (!drawing) return;
+      const rect = canvas.getBoundingClientRect();
+      let endX = e.clientX - rect.left;
+      let endY = e.clientY - rect.top;
+      // Snap end point if near existing endpoint
+      const snap = findNearestEndpoint(endX, endY);
+      if (snap) { endX = snap.x; endY = snap.y; }
+      if (tool === 'wire' || tool === 'resistor' || tool === 'capacitor' || tool === 'battery') {
+        undoStack.push([...elements]);
+        redoStack = [];
+        elements.push({ type: tool, x1: startX, y1: startY, x2: endX, y2: endY, label: '', value: '' });
+        redraw();
+      }
+      drawing = false;
+    });
+    // Undo/Redo logic
+    function undo() {
+      if (undoStack.length > 0) {
+        redoStack.push([...elements]);
+        elements = undoStack.pop();
+        redraw();
+      }
+    }
+    function redo() {
+      if (redoStack.length > 0) {
+        undoStack.push([...elements]);
+        elements = redoStack.pop();
+        redraw();
+      }
+    }
+    window.addEventListener('keydown', function(e) {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        undo();
+      } else if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) {
+        e.preventDefault();
+        redo();
+      }
+    });
+    // Enable label/value editing only in select mode
+    canvas.addEventListener('click', function(e) {
+  if ((tool !== 'select' && tool !== 'selectNode') || drawing) return;
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      // Find topmost element near click
+      if (tool === 'select') {
+        for (let i = elements.length - 1; i >= 0; i--) {
+          const el = elements[i];
+          if (isNearLine(mx, my, el.x1, el.y1, el.x2, el.y2, 16)) {
+            if (!el.label) el.label = '';
+            if (!el.value) el.value = '';
+            // Save state for undo
+            undoStack.push([...elements]);
+            redoStack = [];
+            const newLabel = prompt('Set label for this ' + el.type + ':', el.label);
+            if (newLabel !== null) el.label = newLabel;
+            // Provide default units for value
+            let defaultUnit = '';
+            if (el.type === 'resistor') defaultUnit = 'Ω';
+            else if (el.type === 'capacitor') defaultUnit = 'F';
+            else if (el.type === 'battery') defaultUnit = 'V';
+            else if (el.type === 'wire') defaultUnit = '';
+            let valuePrompt = el.value;
+            if (!valuePrompt && defaultUnit) valuePrompt = defaultUnit;
+            const newValue = prompt('Set value for this ' + el.type + ':', valuePrompt);
+            if (newValue !== null) el.value = newValue;
+            redraw();
+            break;
+          }
+        }
+      } else if (tool === 'selectNode') {
+        // Find all endpoints
+        let endpoints = [];
+        for (const el of elements) {
+          endpoints.push({x: el.x1, y: el.y1});
+          endpoints.push({x: el.x2, y: el.y2});
+        }
+        // Group endpoints by proximity
+        function findOrAdd(arr, pt) {
+          for (const obj of arr) {
+            if (Math.abs(obj.x - pt.x) < 8 && Math.abs(obj.y - pt.y) < 8) return obj;
+          }
+          arr.push({...pt, count: 0});
+          return arr[arr.length-1];
+        }
+        let nodeCounts = [];
+        for (const pt of endpoints) {
+          let node = findOrAdd(nodeCounts, pt);
+          node.count++;
+        }
+        // Find a node near click with count > 1 (joint)
+        let found = null;
+        for (const node of nodeCounts) {
+          if (node.count > 1 && Math.hypot(node.x - mx, node.y - my) < 14) {
+            found = node;
+            break;
+          }
+        }
+        if (found) {
+          selectedNode = {x: found.x, y: found.y};
+        } else {
+          selectedNode = null;
+        }
+        redraw();
+      }
+    });
+    // Helper to check if a point is near a line segment
+    function isNearLine(x, y, x1, y1, x2, y2, tolerance = 12) {
+      // Calculate distance from (x, y) to segment (x1, y1)-(x2, y2)
+      const A = x - x1;
+      const B = y - y1;
+      const C = x2 - x1;
+      const D = y2 - y1;
+      const dot = A * C + B * D;
+      const len_sq = C * C + D * D;
+      let param = -1;
+      if (len_sq !== 0) param = dot / len_sq;
+      let xx, yy;
+      if (param < 0) { xx = x1; yy = y1; }
+      else if (param > 1) { xx = x2; yy = y2; }
+      else { xx = x1 + param * C; yy = y1 + param * D; }
+      const dx = x - xx, dy = y - yy;
+      return Math.sqrt(dx * dx + dy * dy) < tolerance;
+    }
+
+    // Remove label/value editing on click
+    // Optional: show preview while drawing
+    canvas.addEventListener('mousemove', e => {
+      if (!drawing || tool === 'erase') return;
+      redraw();
+      const rect = canvas.getBoundingClientRect();
+      let endX = e.clientX - rect.left;
+      let endY = e.clientY - rect.top;
+      // Snap preview end point if near existing endpoint
+      const snap = findNearestEndpoint(endX, endY);
+      if (snap) { endX = snap.x; endY = snap.y; }
+      if (tool === 'wire') drawWire(startX, startY, endX, endY);
+      if (tool === 'resistor') drawResistor(startX, startY, endX, endY);
+      if (tool === 'capacitor') drawCapacitor(startX, startY, endX, endY);
+      if (tool === 'battery') drawBattery(startX, startY, endX, endY);
+    });
+  </script>
+</body>
+</html>
