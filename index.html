@@ -72,9 +72,107 @@
     #analysisbar button:hover {
       background: #e0e0e0;
     }
+    /* Custom Dialog Styles */
+    #customDialog {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    #dialogBox {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      min-width: 400px;
+      animation: slideIn 0.3s ease;
+    }
+    @keyframes slideIn {
+      from {
+        transform: translateY(-50px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+    #dialogBox h3 {
+      margin: 0 0 20px 0;
+      color: #333;
+      font-size: 1.4rem;
+    }
+    #dialogBox label {
+      display: block;
+      margin-bottom: 8px;
+      color: #555;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    #dialogBox input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 20px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      font-size: 1rem;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+    #dialogBox input:focus {
+      outline: none;
+      border-color: #ff6600;
+    }
+    #dialogButtons {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    #dialogButtons button {
+      padding: 10px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    #dialogButtons .btn-cancel {
+      background: #e0e0e0;
+      color: #333;
+    }
+    #dialogButtons .btn-cancel:hover {
+      background: #d0d0d0;
+    }
+    #dialogButtons .btn-ok {
+      background: #ff6600;
+      color: white;
+    }
+    #dialogButtons .btn-ok:hover {
+      background: #e65c00;
+    }
   </style>
 </head>
 <body>
+  <!-- Custom Dialog -->
+  <div id="customDialog">
+    <div id="dialogBox">
+      <h3 id="dialogTitle">Edit Component</h3>
+      <label for="labelInput">Label:</label>
+      <input type="text" id="labelInput" placeholder="Enter label (e.g., R1, C2)">
+      <label for="valueInput">Value <span id="unitLabel" style="color:#888; font-weight:normal;"></span>:</label>
+      <input type="text" id="valueInput" placeholder="Enter value (e.g., 10, 5)">
+      <div id="dialogButtons">
+        <button class="btn-cancel" onclick="closeDialog(false)">Cancel</button>
+        <button class="btn-ok" onclick="closeDialog(true)">OK</button>
+      </div>
+    </div>
+  </div>
   <h1 style="text-align:center; font-family:Arial,sans-serif; margin-top:16px; margin-bottom:8px; font-size:2.2rem; color:#333;">Circuit Designer</h1>
   <div id="canvasContainer">
   <div id="toolbar">
@@ -101,6 +199,74 @@
     </div>
   </div>
   <script>
+  // Custom dialog logic
+  let dialogResolve = null;
+  let currentElement = null;
+  let currentUnit = '';
+
+  function showDialog(title, labelValue, valueValue, unit) {
+    return new Promise((resolve) => {
+      dialogResolve = resolve;
+      currentUnit = unit || '';
+      document.getElementById('dialogTitle').textContent = title;
+      document.getElementById('labelInput').value = labelValue || '';
+      
+      // Strip unit from value if present
+      let cleanValue = valueValue || '';
+      if (currentUnit && cleanValue.endsWith(currentUnit)) {
+        cleanValue = cleanValue.slice(0, -currentUnit.length).trim();
+      }
+      document.getElementById('valueInput').value = cleanValue;
+      
+      // Show unit in label
+      const unitLabel = document.getElementById('unitLabel');
+      if (currentUnit) {
+        unitLabel.textContent = '(unit: ' + currentUnit + ')';
+      } else {
+        unitLabel.textContent = '';
+      }
+      
+      document.getElementById('customDialog').style.display = 'flex';
+      // Focus on first input
+      setTimeout(() => document.getElementById('labelInput').focus(), 100);
+    });
+  }
+
+  function closeDialog(confirmed) {
+    const dialog = document.getElementById('customDialog');
+    dialog.style.display = 'none';
+    if (dialogResolve) {
+      if (confirmed) {
+        let value = document.getElementById('valueInput').value.trim();
+        // Append unit if not already present and unit exists
+        if (currentUnit && value && !value.endsWith(currentUnit)) {
+          value = value + ' ' + currentUnit;
+        }
+        dialogResolve({
+          label: document.getElementById('labelInput').value,
+          value: value
+        });
+      } else {
+        dialogResolve(null);
+      }
+      dialogResolve = null;
+    }
+  }
+
+  // Handle Enter key in dialog
+  document.addEventListener('keydown', function(e) {
+    const dialog = document.getElementById('customDialog');
+    if (dialog.style.display === 'flex') {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        closeDialog(true);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        closeDialog(false);
+      }
+    }
+  });
+
   // Add selectNode tool logic (no-op for now)
   // You can implement node selection logic as needed
     function nodeAnalysis() {
@@ -168,6 +334,9 @@
   let redoStack = [];
   // Node selection and highlight logic
   let selectedNode = null;
+  // Component counters for auto-labeling
+  let resistorCount = 0;
+  let capacitorCount = 0;
 
     function setTool(t) {
       tool = t;
@@ -291,15 +460,17 @@
       const len = Math.sqrt(dx*dx + dy*dy);
       let ox = 0, oy = 0;
       if (len > 0) {
-        ox = -dy / len * 18; // 18px perpendicular offset
-        oy = dx / len * 18;
+        ox = -dy / len * 25; // perpendicular offset
+        oy = dx / len * 25;
       }
       ctx.save();
       ctx.font = '14px Arial';
       ctx.fillStyle = '#333';
       ctx.textAlign = 'center';
-      if (label) ctx.fillText(label, mx + ox, my + oy - 6);
-      if (value) ctx.fillText(value, mx - ox, my - oy + 18);
+      // Label above/to one side
+      if (label) ctx.fillText(label, mx + ox, my + oy - 3);
+      // Value below/to other side
+      if (value) ctx.fillText(value, mx - ox, my - oy + 3);
       ctx.restore();
     }
     function eraseAt(x, y) {
@@ -400,7 +571,18 @@
       if (tool === 'wire' || tool === 'resistor' || tool === 'capacitor' || tool === 'battery') {
         undoStack.push([...elements]);
         redoStack = [];
-        elements.push({ type: tool, x1: startX, y1: startY, x2: endX, y2: endY, label: '', value: '' });
+        let label = '';
+        let value = '';
+        // Auto-assign labels and default values for resistors and capacitors
+        if (tool === 'resistor') {
+          label = 'R' + resistorCount;
+          value = '5 Ω';
+          resistorCount++;
+        } else if (tool === 'capacitor') {
+          label = 'C' + capacitorCount;
+          capacitorCount++;
+        }
+        elements.push({ type: tool, x1: startX, y1: startY, x2: endX, y2: endY, label: label, value: value });
         redraw();
       }
       drawing = false;
@@ -445,19 +627,32 @@
             // Save state for undo
             undoStack.push([...elements]);
             redoStack = [];
-            const newLabel = prompt('Set label for this ' + el.type + ':', el.label);
-            if (newLabel !== null) el.label = newLabel;
+            
             // Provide default units for value
             let defaultUnit = '';
             if (el.type === 'resistor') defaultUnit = 'Ω';
             else if (el.type === 'capacitor') defaultUnit = 'F';
             else if (el.type === 'battery') defaultUnit = 'V';
             else if (el.type === 'wire') defaultUnit = '';
+            
             let valuePrompt = el.value;
-            if (!valuePrompt && defaultUnit) valuePrompt = defaultUnit;
-            const newValue = prompt('Set value for this ' + el.type + ':', valuePrompt);
-            if (newValue !== null) el.value = newValue;
-            redraw();
+            
+            // Show custom dialog
+            showDialog(
+              'Edit ' + el.type.charAt(0).toUpperCase() + el.type.slice(1),
+              el.label,
+              valuePrompt,
+              defaultUnit
+            ).then(result => {
+              if (result !== null) {
+                el.label = result.label;
+                el.value = result.value;
+                redraw();
+              } else {
+                // User cancelled, revert undo stack
+                undoStack.pop();
+              }
+            });
             break;
           }
         }
