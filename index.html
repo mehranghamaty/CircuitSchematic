@@ -11,6 +11,7 @@
       justify-content: center;
       align-items: center;
       height: 90vh;
+      padding-top: 0;
     }
     #toolbar {
       background: #f0f0f0;
@@ -20,8 +21,8 @@
       gap: 15px;
       border-radius: 8px 0 0 8px;
       box-shadow: 2px 0 8px #0001;
-  height: auto;
-  justify-content: flex-start;
+      height: auto;
+      justify-content: flex-start;
       align-items: center;
       margin-right: 0;
     }
@@ -191,7 +192,7 @@
     <canvas id="schematicCanvas" width="900" height="600"></canvas>
     <div id="analysisbar">
       <button onclick="nodeAnalysis()">Node Analysis</button>
-      <div id="nodeResults" style="margin-top:20px; width:160px;">
+      <div id="nodeResults" style="margin-top:10px; width:160px;">
         <div><b>Voltage:</b> <span id="voltageResult">-</span></div>
         <div><b>Resistance:</b> <span id="resistanceResult">-</span></div>
         <div><b>Impedance:</b> <span id="impedanceResult">-</span></div>
@@ -337,6 +338,7 @@
   // Component counters for auto-labeling
   let resistorCount = 0;
   let capacitorCount = 0;
+  let batteryCount = 0;
 
     function setTool(t) {
       tool = t;
@@ -359,6 +361,11 @@
         redoStack = [];
       }
       elements = [];
+      selectedNode = null;
+      // Clear node analysis results
+      document.getElementById('voltageResult').textContent = '-';
+      document.getElementById('resistanceResult').textContent = '-';
+      document.getElementById('impedanceResult').textContent = '-';
       redraw();
     }
 
@@ -581,6 +588,10 @@
         } else if (tool === 'capacitor') {
           label = 'C' + capacitorCount;
           capacitorCount++;
+        } else if (tool === 'battery') {
+          label = 'B' + batteryCount;
+          value = '5 V';
+          batteryCount++;
         }
         elements.push({ type: tool, x1: startX, y1: startY, x2: endX, y2: endY, label: label, value: value });
         redraw();
