@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Circuit Schematic Drawing Tool</title>
+  <title>Circuit Schematic Drawing Tool - v2.0 with Diode</title>
   <style>
     body { 
       font-family: Arial, sans-serif; 
@@ -167,6 +167,7 @@
     resistorCount = 0;
     capacitorCount = 0;
     inductorCount = 0;
+    diodeCount = 0;
     batteryCount = 0;
     selectedNode = null;
     circuitEdited = false; // Reset edit flag when loading example circuit
@@ -503,7 +504,7 @@
     // UI Layout Constants
     const UI = {
       // Left toolbar
-      leftToolbar: { x: 10, y: 60, width: 180, padding: 10, buttonHeight: 35, gap: 8 },
+      leftToolbar: { x: 10, y: 60, width: 180, padding: 10, buttonHeight: 28, gap: 4 },
       // Right sidebar
       rightSidebar: { width: 220, padding: 15, y: 60 },
       // Top bar
@@ -537,11 +538,15 @@
   let resistorCount = 0;
   let capacitorCount = 0;
   let inductorCount = 0;
+  let diodeCount = 0;
   let batteryCount = 0;
   // Area selection
   let selectionBox = null;
   let selectedElements = [];
   let selectedComponent = null; // Track selected component in select mode
+  // Move tool
+  let movingComponent = null;
+  let moveOffset = { x: 0, y: 0 };
   // Voltage flow animation
   let showVoltageFlowAnimation = false;
   let showInductionAnimation = false;
@@ -569,10 +574,12 @@
       { label: 'Select Component', action: () => setTool('select'), tool: 'select' },
       { label: 'Select Node', action: () => setTool('selectNode'), tool: 'selectNode' },
       { label: 'Select Area', action: () => setTool('selectArea'), tool: 'selectArea' },
+      { label: 'Move', action: () => setTool('move'), tool: 'move' },
       { label: 'Wire', action: () => setTool('wire'), tool: 'wire' },
       { label: 'Resistor', action: () => setTool('resistor'), tool: 'resistor' },
       { label: 'Capacitor', action: () => setTool('capacitor'), tool: 'capacitor' },
       { label: 'Inductor', action: () => setTool('inductor'), tool: 'inductor' },
+      { label: 'Diode', action: () => setTool('diode'), tool: 'diode' },
       { label: 'Battery', action: () => setTool('battery'), tool: 'battery' },
       { label: 'Erase', action: () => setTool('erase'), tool: 'erase' },
       { label: '---', action: null, tool: null }, // Separator
@@ -592,6 +599,9 @@
       tool: btn.tool,
       isSeparator: btn.label === '---'
     }));
+    
+    console.log('Left toolbar buttons created:', uiButtons.leftToolbar.length);
+    console.log('Button labels:', uiButtons.leftToolbar.map(b => b.label).join(', '));
     
     // Right sidebar buttons
     const rightButtons = [
@@ -664,10 +674,13 @@
     function setTool(t) {
       tool = t;
       selectedComponent = null; // Clear selection when switching tools
+      movingComponent = null; // Clear moving component
       
       // Reset cursor when switching tools
       if (t === 'pan') {
         canvas.style.cursor = 'grab';
+      } else if (t === 'move') {
+        canvas.style.cursor = 'move';
       } else {
         canvas.style.cursor = 'default';
       }
@@ -844,6 +857,56 @@
       ctx.restore();
       if (label || value) drawLabelAndValue(x1, y1, x2, y2, label, value);
     }
+    
+    function drawDiode(x1, y1, x2, y2, label, value) {
+      // Draw a diode symbol between (x1, y1) and (x2, y2)
+      const dx = x2 - x1, dy = y2 - y1;
+      const len = Math.sqrt(dx*dx + dy*dy);
+      const angle = Math.atan2(dy, dx);
+      ctx.save();
+      ctx.translate(x1, y1);
+      ctx.rotate(angle);
+      
+      // Wire leading to diode
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(len*0.3, 0);
+      ctx.strokeStyle = '#ff6600';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // Triangle (anode)
+      ctx.beginPath();
+      ctx.moveTo(len*0.3, 0);
+      ctx.lineTo(len*0.5, -12);
+      ctx.lineTo(len*0.5, 12);
+      ctx.closePath();
+      ctx.fillStyle = '#ff6600';
+      ctx.fill();
+      ctx.strokeStyle = '#ff6600';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // Cathode bar
+      ctx.beginPath();
+      ctx.moveTo(len*0.5, -12);
+      ctx.lineTo(len*0.5, 12);
+      ctx.strokeStyle = '#ff6600';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      
+      // Wire from diode
+      ctx.beginPath();
+      ctx.moveTo(len*0.5, 0);
+      ctx.lineTo(len, 0);
+      ctx.strokeStyle = '#ff6600';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      ctx.restore();
+      if (label || value) drawLabelAndValue(x1, y1, x2, y2, label, value);
+    }
+    
     function drawBattery(x1, y1, x2, y2, label, value) {
       // Draw a battery symbol between (x1, y1) and (x2, y2)
       const dx = x2 - x1, dy = y2 - y1;
@@ -975,6 +1038,7 @@
         if (el.type === 'resistor') drawResistor(el.x1, el.y1, el.x2, el.y2, el.label, el.value);
         if (el.type === 'capacitor') drawCapacitor(el.x1, el.y1, el.x2, el.y2, el.label, el.value);
         if (el.type === 'inductor') drawInductor(el.x1, el.y1, el.x2, el.y2, el.label, el.value);
+        if (el.type === 'diode') drawDiode(el.x1, el.y1, el.x2, el.y2, el.label, el.value);
         if (el.type === 'battery') drawBattery(el.x1, el.y1, el.x2, el.y2, el.label, el.value);
       }
       // Draw selected node highlight
@@ -1262,6 +1326,27 @@
       mx = transformed.x;
       my = transformed.y;
       
+      if (tool === 'move') {
+        // Find component to move
+        for (let i = elements.length - 1; i >= 0; i--) {
+          const el = elements[i];
+          if (isNearLine(mx, my, el.x1, el.y1, el.x2, el.y2, 16)) {
+            movingComponent = el;
+            // Calculate offset from mouse to component's first point
+            moveOffset = {
+              x1: mx - el.x1,
+              y1: my - el.y1,
+              x2: mx - el.x2,
+              y2: my - el.y2
+            };
+            drawing = true;
+            canvas.style.cursor = 'move';
+            return;
+          }
+        }
+        return;
+      }
+      
       if (tool === 'selectArea') {
         // Start area selection
         selectionBox = { x1: mx, y1: my, x2: mx, y2: my };
@@ -1285,6 +1370,15 @@
       if (tool === 'pan' && isPanning) {
         isPanning = false;
         canvas.style.cursor = 'grab';
+        return;
+      }
+      
+      if (tool === 'move' && movingComponent) {
+        movingComponent = null;
+        drawing = false;
+        canvas.style.cursor = 'default';
+        circuitEdited = true;
+        redraw();
         return;
       }
       
@@ -1329,7 +1423,7 @@
       // Snap end point if near existing endpoint
       const snap = findNearestEndpoint(endX, endY);
       if (snap) { endX = snap.x; endY = snap.y; }
-      if (tool === 'wire' || tool === 'resistor' || tool === 'capacitor' || tool === 'inductor' || tool === 'battery') {
+      if (tool === 'wire' || tool === 'resistor' || tool === 'capacitor' || tool === 'inductor' || tool === 'diode' || tool === 'battery') {
         undoStack.push([...elements]);
         redoStack = [];
         let label = '';
@@ -1346,6 +1440,10 @@
           label = 'L' + inductorCount;
           value = '1 H';
           inductorCount++;
+        } else if (tool === 'diode') {
+          label = 'D' + diodeCount;
+          value = '1N4148';
+          diodeCount++;
         } else if (tool === 'battery') {
           label = 'B' + batteryCount;
           value = '5 V';
@@ -1425,6 +1523,7 @@
             if (el.type === 'resistor') defaultUnit = 'Ω';
             else if (el.type === 'capacitor') defaultUnit = 'F';
             else if (el.type === 'inductor') defaultUnit = 'H';
+            else if (el.type === 'diode') defaultUnit = '';
             else if (el.type === 'battery') defaultUnit = 'V';
             else if (el.type === 'wire') defaultUnit = '';
             
@@ -1567,6 +1666,16 @@
       mx = transformed.x;
       my = transformed.y;
       
+      if (tool === 'move' && movingComponent) {
+        // Move the component
+        movingComponent.x1 = mx - moveOffset.x1;
+        movingComponent.y1 = my - moveOffset.y1;
+        movingComponent.x2 = mx - moveOffset.x2;
+        movingComponent.y2 = my - moveOffset.y2;
+        redraw();
+        return;
+      }
+      
       if (tool === 'selectArea' && selectionBox) {
         // Update selection box while dragging
         selectionBox.x2 = mx;
@@ -1596,6 +1705,7 @@
       if (tool === 'resistor') drawResistor(startX, startY, endX, endY);
       if (tool === 'capacitor') drawCapacitor(startX, startY, endX, endY);
       if (tool === 'inductor') drawInductor(startX, startY, endX, endY);
+      if (tool === 'diode') drawDiode(startX, startY, endX, endY);
       if (tool === 'battery') drawBattery(startX, startY, endX, endY);
       
       ctx.restore();
