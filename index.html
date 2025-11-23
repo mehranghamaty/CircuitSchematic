@@ -5,73 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Circuit Schematic Drawing Tool</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
-    #canvasContainer {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 90vh;
-      padding-top: 0;
-    }
-    #toolbar {
-      background: #f0f0f0;
-      padding: 20px 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-      border-radius: 8px 0 0 8px;
-      box-shadow: 2px 0 8px #0001;
-      height: auto;
-      justify-content: flex-start;
-      align-items: center;
-      margin-right: 0;
+    body { 
+      font-family: Arial, sans-serif; 
+      margin: 0; 
+      padding: 0; 
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
     }
     canvas {
-      border: 1px solid #888;
-      background: #fff;
       display: block;
+      width: 100%;
+      height: 100%;
     }
-    button {
-      padding: 10px 18px;
-      font-size: 1rem;
-      border-radius: 4px;
-      border: 1px solid #bbb;
-      background: #fafafa;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    button.selected {
-      background: orange;
-      color: #fff;
-      border-color: #e67e22;
-    }
-    button:hover {
-      background: #e0e0e0;
-    }
-    #analysisbar {
-      background: #f0f0f0;
-      padding: 20px 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-      border-radius: 0 8px 8px 0;
-      box-shadow: -2px 0 8px #0001;
-      height: auto;
-      justify-content: flex-start;
-      align-items: center;
-      margin-left: 0;
-    }
-    #analysisbar button {
-      padding: 10px 18px;
-      font-size: 1rem;
-      border-radius: 4px;
-      border: 1px solid #bbb;
-      background: #fafafa;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    #analysisbar button:hover {
-      background: #e0e0e0;
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
     }
     /* Custom Dialog Styles */
     #customDialog {
@@ -164,52 +114,158 @@
   <div id="customDialog">
     <div id="dialogBox">
       <h3 id="dialogTitle">Edit Component</h3>
-      <label for="labelInput">Label:</label>
-      <input type="text" id="labelInput" placeholder="Enter label (e.g., R1, C2)">
-      <label for="valueInput">Value <span id="unitLabel" style="color:#888; font-weight:normal;"></span>:</label>
-      <input type="text" id="valueInput" placeholder="Enter value (e.g., 10, 5)">
+      <div id="dialogContent">
+        <label for="labelInput">Label:</label>
+        <input type="text" id="labelInput" placeholder="Enter label (e.g., R1, C2)">
+        <label for="valueInput">Value <span id="unitLabel" style="color:#888; font-weight:normal;"></span>:</label>
+        <input type="text" id="valueInput" placeholder="Enter value (e.g., 10, 5)">
+      </div>
+      <p id="dialogMessage" style="margin:0; color:#555; line-height:1.5;"></p>
       <div id="dialogButtons">
         <button class="btn-cancel" onclick="closeDialog(false)">Cancel</button>
         <button class="btn-ok" onclick="closeDialog(true)">OK</button>
       </div>
     </div>
   </div>
-  <h1 style="text-align:center; font-family:Arial,sans-serif; margin-top:16px; margin-bottom:8px; font-size:2.2rem; color:#333;">Circuit Designer</h1>
-  <div id="canvasContainer">
-  <div id="toolbar">
-  <button onclick="setTool('select')">Select Component</button>
-  <button onclick="setTool('selectNode')">Select Node</button>
-      <button onclick="setTool('wire')">Wire</button>
-      <button onclick="setTool('resistor')">Resistor</button>
-      <button onclick="setTool('capacitor')">Capacitor</button>
-      <button onclick="setTool('battery')">Battery</button>
-      <button onclick="setTool('erase')">Erase</button>
-      <button onclick="clearCanvas()">Clear</button>
-      <button onclick="exportCircuit()">Export</button>
-      <button onclick="importCircuit()">Import</button>
-    </div>
-    <input type="file" id="importFileInput" style="display:none" accept="application/json">
-    <canvas id="schematicCanvas" width="900" height="600"></canvas>
-    <div id="analysisbar">
-      <button onclick="nodeAnalysis()">Node Analysis</button>
-      <div id="nodeResults" style="margin-top:10px; width:160px;">
-        <div><b>Voltage:</b> <span id="voltageResult">-</span></div>
-        <div><b>Resistance:</b> <span id="resistanceResult">-</span></div>
-        <div><b>Impedance:</b> <span id="impedanceResult">-</span></div>
-      </div>
-    </div>
-  </div>
+  
+  <input type="file" id="importFileInput" style="display:none" accept="application/json">
+  <canvas id="schematicCanvas"></canvas>
+  
   <script>
   // Custom dialog logic
   let dialogResolve = null;
   let currentElement = null;
   let currentUnit = '';
+  
+  // Circuit cycling logic
+  const circuitTypes = ['series', 'parallel', 'divider', 'thevenin', 'norton'];
+  let circuitEdited = false; // Track if user has edited the circuit
+  
+  function cycleCircuit() {
+    currentCircuitIndex = (currentCircuitIndex + 1) % circuitTypes.length;
+    loadDefaultCircuit(circuitTypes[currentCircuitIndex]);
+  }
+
+  function loadDefaultCircuit(type) {
+    if (elements.length > 0 && circuitEdited) {
+      showConfirmDialog('This will clear the current circuit. Continue?').then(confirmed => {
+        if (confirmed) {
+          loadCircuit(type);
+        }
+      });
+    } else {
+      loadCircuit(type);
+    }
+  }
+
+  function loadCircuit(type) {
+    // Save state for undo
+    undoStack.push([...elements]);
+    redoStack = [];
+    
+    // Reset counters
+    resistorCount = 0;
+    capacitorCount = 0;
+    inductorCount = 0;
+    batteryCount = 0;
+    selectedNode = null;
+    circuitEdited = false; // Reset edit flag when loading example circuit
+    
+    elements = [];
+    
+    // Update current circuit name
+    const circuitNamesMap = {
+      'series': 'Series Circuit',
+      'parallel': 'Parallel Circuit',
+      'divider': 'Voltage Divider',
+      'thevenin': 'Thevenin Equivalent',
+      'norton': 'Norton Equivalent'
+    };
+    currentCircuitName = circuitNamesMap[type] || 'Custom Circuit';
+    currentCircuitIndex = circuitTypes.indexOf(type);
+    
+    if (type === 'series') {
+      // Simple series circuit: Battery - R1 - R2
+      elements.push({ type: 'battery', x1: 150, y1: 200, x2: 150, y2: 300, label: 'B0', value: '5 V' });
+      elements.push({ type: 'wire', x1: 150, y1: 300, x2: 250, y2: 300, label: '', value: '' });
+      elements.push({ type: 'resistor', x1: 250, y1: 300, x2: 400, y2: 300, label: 'R0', value: '5 Ω' });
+      elements.push({ type: 'resistor', x1: 400, y1: 300, x2: 550, y2: 300, label: 'R1', value: '5 Ω' });
+      elements.push({ type: 'wire', x1: 550, y1: 300, x2: 650, y2: 300, label: '', value: '' });
+      elements.push({ type: 'wire', x1: 650, y1: 300, x2: 650, y2: 200, label: '', value: '' });
+      elements.push({ type: 'wire', x1: 650, y1: 200, x2: 150, y2: 200, label: '', value: '' });
+      resistorCount = 2;
+      batteryCount = 1;
+    } else if (type === 'parallel') {
+      // Parallel circuit: Battery with two parallel resistors
+      elements.push({ type: 'battery', x1: 150, y1: 200, x2: 150, y2: 300, label: 'B0', value: '5 V' });
+      elements.push({ type: 'wire', x1: 150, y1: 300, x2: 300, y2: 300, label: '', value: '' });
+      // Top branch
+      elements.push({ type: 'resistor', x1: 300, y1: 250, x2: 500, y2: 250, label: 'R0', value: '5 Ω' });
+      // Bottom branch
+      elements.push({ type: 'resistor', x1: 300, y1: 350, x2: 500, y2: 350, label: 'R1', value: '5 Ω' });
+      elements.push({ type: 'wire', x1: 300, y1: 300, x2: 300, y2: 250, label: '', value: '' });
+      elements.push({ type: 'wire', x1: 300, y1: 300, x2: 300, y2: 350, label: '', value: '' });
+      elements.push({ type: 'wire', x1: 500, y1: 250, x2: 500, y2: 300, label: '', value: '' });
+      elements.push({ type: 'wire', x1: 500, y1: 350, x2: 500, y2: 300, label: '', value: '' });
+      elements.push({ type: 'wire', x1: 500, y1: 300, x2: 600, y2: 300, label: '', value: '' });
+      elements.push({ type: 'wire', x1: 600, y1: 300, x2: 600, y2: 200, label: '', value: '' });
+      elements.push({ type: 'wire', x1: 600, y1: 200, x2: 150, y2: 200, label: '', value: '' });
+      resistorCount = 2;
+      batteryCount = 1;
+    } else if (type === 'divider') {
+      // Voltage divider circuit
+      elements.push({ type: 'battery', x1: 150, y1: 150, x2: 150, y2: 250, label: 'B0', value: '5 V' });
+      elements.push({ type: 'wire', x1: 150, y1: 250, x2: 250, y2: 250, label: '', value: '' });
+      elements.push({ type: 'resistor', x1: 250, y1: 250, x2: 250, y2: 350, label: 'R0', value: '5 Ω' });
+      elements.push({ type: 'resistor', x1: 250, y1: 350, x2: 250, y2: 450, label: 'R1', value: '5 Ω' });
+      elements.push({ type: 'wire', x1: 250, y1: 450, x2: 150, y2: 450, label: '', value: '' });
+      elements.push({ type: 'wire', x1: 150, y1: 450, x2: 150, y2: 150, label: '', value: '' });
+      resistorCount = 2;
+      batteryCount = 1;
+    } else if (type === 'thevenin') {
+      // Thevenin equivalent circuit: Voltage source in series with resistance
+      // Shows Vth (Thevenin voltage) and Rth (Thevenin resistance)
+      elements.push({ type: 'battery', x1: 200, y1: 200, x2: 200, y2: 300, label: 'Vth', value: '10 V' });
+      elements.push({ type: 'wire', x1: 200, y1: 300, x2: 300, y2: 300, label: '', value: '' });
+      elements.push({ type: 'resistor', x1: 300, y1: 300, x2: 500, y2: 300, label: 'Rth', value: '2 Ω' });
+      // Load resistor
+      elements.push({ type: 'resistor', x1: 500, y1: 300, x2: 500, y2: 450, label: 'RL', value: '8 Ω' });
+      elements.push({ type: 'wire', x1: 500, y1: 450, x2: 200, y2: 450, label: '', value: '' });
+      elements.push({ type: 'wire', x1: 200, y1: 450, x2: 200, y2: 200, label: '', value: '' });
+      resistorCount = 2;
+      batteryCount = 1;
+    } else if (type === 'norton') {
+      // Norton equivalent circuit: Current source in parallel with resistance
+      // Shows In (Norton current) and Rn (Norton resistance)
+      // Representing current source as battery with special label
+      elements.push({ type: 'battery', x1: 200, y1: 200, x2: 200, y2: 350, label: 'In', value: '5 A' });
+      // Norton resistance in parallel
+      elements.push({ type: 'resistor', x1: 350, y1: 200, x2: 350, y2: 350, label: 'Rn', value: '2 Ω' });
+      // Load resistor in parallel
+      elements.push({ type: 'resistor', x1: 500, y1: 200, x2: 500, y2: 350, label: 'RL', value: '8 Ω' });
+      // Top wire connecting all parallel elements
+      elements.push({ type: 'wire', x1: 200, y1: 200, x2: 350, y2: 200, label: '', value: '' });
+      elements.push({ type: 'wire', x1: 350, y1: 200, x2: 500, y2: 200, label: '', value: '' });
+      // Bottom wire connecting all parallel elements
+      elements.push({ type: 'wire', x1: 200, y1: 350, x2: 350, y2: 350, label: '', value: '' });
+      elements.push({ type: 'wire', x1: 350, y1: 350, x2: 500, y2: 350, label: '', value: '' });
+      resistorCount = 2;
+      batteryCount = 1;
+    }
+    
+    redraw();
+  }
 
   function showDialog(title, labelValue, valueValue, unit) {
     return new Promise((resolve) => {
       dialogResolve = resolve;
       currentUnit = unit || '';
       document.getElementById('dialogTitle').textContent = title;
+      
+      // Show input fields, hide message
+      document.getElementById('dialogContent').style.display = 'block';
+      document.getElementById('dialogMessage').style.display = 'none';
+      
       document.getElementById('labelInput').value = labelValue || '';
       
       // Strip unit from value if present
@@ -230,6 +286,21 @@
       document.getElementById('customDialog').style.display = 'flex';
       // Focus on first input
       setTimeout(() => document.getElementById('labelInput').focus(), 100);
+    });
+  }
+
+  function showConfirmDialog(message) {
+    return new Promise((resolve) => {
+      dialogResolve = resolve;
+      currentUnit = '';
+      document.getElementById('dialogTitle').textContent = 'Confirm Action';
+      
+      // Hide input fields, show message
+      document.getElementById('dialogContent').style.display = 'none';
+      document.getElementById('dialogMessage').style.display = 'block';
+      document.getElementById('dialogMessage').textContent = message;
+      
+      document.getElementById('customDialog').style.display = 'flex';
     });
   }
 
@@ -270,19 +341,107 @@
 
   // Add selectNode tool logic (no-op for now)
   // You can implement node selection logic as needed
+    function toggleVoltageFlow() {
+      showVoltageFlowAnimation = !showVoltageFlowAnimation;
+      
+      if (showVoltageFlowAnimation) {
+        // Start animation
+        flowAnimationId = setInterval(() => {
+          flowAnimationOffset = (flowAnimationOffset + 2) % 20;
+          redraw();
+        }, 50);
+      } else {
+        // Stop animation
+        if (flowAnimationId) {
+          clearInterval(flowAnimationId);
+          flowAnimationId = null;
+        }
+        flowAnimationOffset = 0;
+        redraw();
+      }
+    }
+    
+    function toggleInduction() {
+      showInductionAnimation = !showInductionAnimation;
+      redraw();
+    }
+    
     function nodeAnalysis() {
       // Example: fill sidebar with dummy values if a node is selected
       if (selectedNode) {
-        document.getElementById('voltageResult').textContent = '5 V';
-        document.getElementById('resistanceResult').textContent = '10 Ω';
-        document.getElementById('impedanceResult').textContent = '10 Ω';
+        // Calculate dummy V, I, R values based on circuit
+        // In a real implementation, you would solve the circuit equations
+        const voltage = '5.0 V';
+        const current = '0.5 A';
+        const resistance = '10.0 Ω';
+        
+        document.getElementById('voltageResult').textContent = voltage;
+        document.getElementById('currentResult').textContent = current;
+        document.getElementById('resistanceResult').textContent = resistance;
       } else {
         document.getElementById('voltageResult').textContent = '-';
+        document.getElementById('currentResult').textContent = '-';
         document.getElementById('resistanceResult').textContent = '-';
-        document.getElementById('impedanceResult').textContent = '-';
         alert('Select a node first.');
       }
     }
+    
+    function theveninToNorton() {
+      // Convert between Thevenin and Norton equivalent circuits
+      // Find if we have a Thevenin circuit (series voltage source and resistance)
+      // or Norton circuit (parallel current source and resistance)
+      
+      showConfirmDialog('This will convert between Thevenin and Norton equivalent circuits. Continue?').then(confirmed => {
+        if (!confirmed) return;
+        
+        // Simple conversion logic
+        // Find battery and resistors
+        const batteries = elements.filter(el => el.type === 'battery');
+        const resistors = elements.filter(el => el.type === 'resistor');
+        
+        if (batteries.length === 0 || resistors.length === 0) {
+          alert('Circuit must contain at least one battery and one resistor for conversion.');
+          return;
+        }
+        
+        // Get first battery and first resistor for conversion
+        const battery = batteries[0];
+        const resistor = resistors[0];
+        
+        // Parse values
+        const vValue = parseFloat(battery.value) || 0;
+        const rValue = parseFloat(resistor.value) || 1;
+        
+        // Check if it's labeled as Thevenin (Vth) or Norton (In)
+        if (battery.label.includes('Vth') || battery.label.includes('V')) {
+          // Convert Thevenin to Norton: In = Vth / Rth
+          const iNorton = (vValue / rValue).toFixed(2);
+          battery.label = 'In';
+          battery.value = iNorton + ' A';
+          resistor.label = 'Rn';
+          alert(`Converted to Norton: In = ${iNorton} A, Rn = ${rValue} Ω`);
+        } else if (battery.label.includes('In') || battery.label.includes('I')) {
+          // Convert Norton to Thevenin: Vth = In * Rn
+          const vThevenin = (vValue * rValue).toFixed(2);
+          battery.label = 'Vth';
+          battery.value = vThevenin + ' V';
+          resistor.label = 'Rth';
+          alert(`Converted to Thevenin: Vth = ${vThevenin} V, Rth = ${rValue} Ω`);
+        } else {
+          // Default: treat as Thevenin and convert to Norton
+          const iNorton = (vValue / rValue).toFixed(2);
+          battery.label = 'In';
+          battery.value = iNorton + ' A';
+          resistor.label = 'Rn';
+          alert(`Converted to Norton: In = ${iNorton} A, Rn = ${rValue} Ω`);
+        }
+        
+        undoStack.push([...elements]);
+        redoStack = [];
+        redraw();
+      });
+    }
+    
     function exportCircuit() {
       const data = JSON.stringify(elements, null, 2);
       const blob = new Blob([data], {type: 'application/json'});
@@ -327,6 +486,45 @@
     });
     const canvas = document.getElementById('schematicCanvas');
     const ctx = canvas.getContext('2d');
+    
+    // Make canvas fullscreen
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      updateDrawingArea();
+      if (uiButtons.leftToolbar.length > 0) {
+        initializeUIButtons(); // Reinitialize button positions
+      }
+      redraw();
+    }
+    window.addEventListener('resize', resizeCanvas);
+    // Don't call resizeCanvas here - wait for DOMContentLoaded
+    
+    // UI Layout Constants
+    const UI = {
+      // Left toolbar
+      leftToolbar: { x: 10, y: 60, width: 180, padding: 10, buttonHeight: 35, gap: 8 },
+      // Right sidebar
+      rightSidebar: { width: 220, padding: 15, y: 60 },
+      // Top bar
+      topBar: { height: 50, padding: 10 },
+      // Bottom circuits
+      bottomCircuits: { height: 80, padding: 10 },
+      // Drawing area (calculated dynamically)
+      drawingArea: {}
+    };
+    
+    // Update drawing area based on window size
+    function updateDrawingArea() {
+      UI.drawingArea = {
+        x: UI.leftToolbar.x + UI.leftToolbar.width + 20,
+        y: UI.topBar.height + 10,
+        width: canvas.width - (UI.leftToolbar.x + UI.leftToolbar.width + 20) - (UI.rightSidebar.width + 30),
+        height: canvas.height - UI.topBar.height - UI.bottomCircuits.height - 20
+      };
+      UI.rightSidebar.x = canvas.width - UI.rightSidebar.width - 10;
+    }
+    
     let tool = 'wire';
     let drawing = false;
     let startX, startY;
@@ -338,23 +536,152 @@
   // Component counters for auto-labeling
   let resistorCount = 0;
   let capacitorCount = 0;
+  let inductorCount = 0;
   let batteryCount = 0;
+  // Area selection
+  let selectionBox = null;
+  let selectedElements = [];
+  let selectedComponent = null; // Track selected component in select mode
+  // Voltage flow animation
+  let showVoltageFlowAnimation = false;
+  let showInductionAnimation = false;
+  let flowAnimationOffset = 0;
+  let flowAnimationId = null;
+  
+  // UI Buttons - will be populated dynamically
+  let uiButtons = {
+    leftToolbar: [],
+    rightSidebar: [],
+    topBar: [],
+    bottomCircuits: []
+  };
+  let hoveredButton = null;
+  let currentCircuitIndex = 0;
+  const circuitNames = ['series', 'parallel', 'divider', 'thevenin', 'norton'];
+  let currentCircuitName = 'No Circuit';
+  
+  // Initialize UI buttons
+  function initializeUIButtons() {
+    updateDrawingArea();
+    
+    // Left toolbar buttons (drawing tools)
+    const toolButtons = [
+      { label: 'Select Component', action: () => setTool('select'), tool: 'select' },
+      { label: 'Select Node', action: () => setTool('selectNode'), tool: 'selectNode' },
+      { label: 'Select Area', action: () => setTool('selectArea'), tool: 'selectArea' },
+      { label: 'Wire', action: () => setTool('wire'), tool: 'wire' },
+      { label: 'Resistor', action: () => setTool('resistor'), tool: 'resistor' },
+      { label: 'Capacitor', action: () => setTool('capacitor'), tool: 'capacitor' },
+      { label: 'Inductor', action: () => setTool('inductor'), tool: 'inductor' },
+      { label: 'Battery', action: () => setTool('battery'), tool: 'battery' },
+      { label: 'Erase', action: () => setTool('erase'), tool: 'erase' },
+      { label: '---', action: null, tool: null }, // Separator
+      { label: 'Pan', action: () => setTool('pan'), tool: 'pan' },
+      { label: 'Zoom In', action: zoomIn, tool: null },
+      { label: 'Zoom Out', action: zoomOut, tool: null },
+      { label: 'Reset Zoom', action: resetZoom, tool: null }
+    ];
+    
+    uiButtons.leftToolbar = toolButtons.map((btn, i) => ({
+      x: UI.leftToolbar.x,
+      y: UI.leftToolbar.y + i * (UI.leftToolbar.buttonHeight + UI.leftToolbar.gap),
+      width: UI.leftToolbar.width,
+      height: btn.label === '---' ? 2 : UI.leftToolbar.buttonHeight,
+      label: btn.label,
+      action: btn.action,
+      tool: btn.tool,
+      isSeparator: btn.label === '---'
+    }));
+    
+    // Right sidebar buttons
+    const rightButtons = [
+      { label: 'Show Voltage Flow', action: toggleVoltageFlow },
+      { label: 'Show Induction', action: toggleInduction },
+      { label: 'Node Analysis', action: nodeAnalysis },
+      { label: 'Thevenin ↔ Norton', action: theveninToNorton }
+    ];
+    
+    let rightY = UI.rightSidebar.y + 180; // Space for VIR display
+    uiButtons.rightSidebar = rightButtons.map((btn, i) => ({
+      x: UI.rightSidebar.x,
+      y: rightY + i * (UI.leftToolbar.buttonHeight + UI.leftToolbar.gap),
+      width: UI.rightSidebar.width,
+      height: UI.leftToolbar.buttonHeight,
+      label: btn.label,
+      action: btn.action
+    }));
+    
+    // Top bar buttons (positioned on the right side)
+    uiButtons.topBar = [
+      { x: canvas.width - 210, y: 10, width: 90, height: 30, label: 'Export', action: exportCircuit },
+      { x: canvas.width - 110, y: 10, width: 90, height: 30, label: 'Import', action: importCircuit }
+    ];
+    
+    // Bottom circuits buttons (centered)
+    const circuitButtons = [
+      { label: 'Next Circuit', action: cycleCircuit },
+      { label: 'Series', action: () => loadDefaultCircuit('series') },
+      { label: 'Parallel', action: () => loadDefaultCircuit('parallel') },
+      { label: 'Divider', action: () => loadDefaultCircuit('divider') },
+      { label: 'Thevenin', action: () => loadDefaultCircuit('thevenin') },
+      { label: 'Norton', action: () => loadDefaultCircuit('norton') },
+      { label: 'Clear', action: clearCanvas, isRed: true }
+    ];
+    
+    // Calculate total width of buttons to center them
+    let totalWidth = 0;
+    circuitButtons.forEach((btn, i) => {
+      const width = btn.label === 'Next Circuit' ? 110 : (btn.label === 'Clear' ? 80 : 85);
+      totalWidth += width + (i > 0 ? 8 : 0); // Add gap except for first button
+    });
+    
+    let bottomY = canvas.height - UI.bottomCircuits.height + 50; // Move buttons down to make room for title and circuit name
+    let bottomX = (canvas.width - totalWidth) / 2; // Center the buttons
+    uiButtons.bottomCircuits = circuitButtons.map((btn, i) => {
+      const width = btn.label === 'Next Circuit' ? 110 : (btn.label === 'Clear' ? 80 : 85);
+      const result = {
+        x: bottomX,
+        y: bottomY,
+        width: width,
+        height: 32,
+        label: btn.label,
+        action: btn.action,
+        isRed: btn.isRed || false
+      };
+      bottomX += width + 8;
+      return result;
+    });
+  }
+  
+  // Canvas control buttons (pan/zoom) - kept separate for backward compatibility
+  let canvasButtons = [];
+  // Pan and zoom
+  let panOffset = { x: 0, y: 0 };
+  let scale = 1;
+  let isPanning = false;
+  let panStart = { x: 0, y: 0 };
 
     function setTool(t) {
       tool = t;
-      // Highlight selected button
-      const toolbar = document.getElementById('toolbar');
-      for (const btn of toolbar.querySelectorAll('button')) {
-        btn.classList.remove('selected');
+      selectedComponent = null; // Clear selection when switching tools
+      
+      // Reset cursor when switching tools
+      if (t === 'pan') {
+        canvas.style.cursor = 'grab';
+      } else {
+        canvas.style.cursor = 'default';
       }
-      const btns = toolbar.querySelectorAll('button');
-      // Map tool to button index
-  const toolOrder = ['select','selectNode','wire','resistor','capacitor','battery','erase','clear'];
-      const idx = toolOrder.indexOf(t);
-      if (idx >= 0 && btns[idx]) btns[idx].classList.add('selected');
+      
+      // Redraw to update button highlights
+      redraw();
     }
     // Set initial selected button
-    window.addEventListener('DOMContentLoaded', () => setTool(tool));
+    window.addEventListener('DOMContentLoaded', () => {
+      resizeCanvas(); // Initialize canvas size first
+      initializeUIButtons();
+      setTool(tool);
+      redraw(); // Draw initial grid
+    });
     function clearCanvas() {
       if (elements.length > 0) {
         undoStack.push([...elements]);
@@ -362,21 +689,88 @@
       }
       elements = [];
       selectedNode = null;
-      // Clear node analysis results
-      document.getElementById('voltageResult').textContent = '-';
-      document.getElementById('resistanceResult').textContent = '-';
-      document.getElementById('impedanceResult').textContent = '-';
+      selectedComponent = null; // Clear selected component
+      circuitEdited = false; // Reset edit flag when clearing
+      currentCircuitName = 'No Circuit';
       redraw();
     }
 
-    function drawWire(x1, y1, x2, y2, label, value) {
+    function zoomIn() {
+      scale *= 1.2;
+      canvas.style.cursor = 'default';
+      redraw();
+    }
+
+    function zoomOut() {
+      scale /= 1.2;
+      canvas.style.cursor = 'default';
+      redraw();
+    }
+
+    function resetZoom() {
+      scale = 1;
+      panOffset = { x: 0, y: 0 };
+      canvas.style.cursor = 'default';
+      redraw();
+    }
+
+    function getTransformedPoint(x, y) {
+      return {
+        x: (x - panOffset.x) / scale,
+        y: (y - panOffset.y) / scale
+      };
+    }
+
+    function drawWire(x1, y1, x2, y2, label, value, isSelected) {
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
-      ctx.strokeStyle = '#222';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = isSelected ? 'purple' : '#222';
+      ctx.lineWidth = isSelected ? 3 : 2;
       ctx.stroke();
+      
+      // Draw voltage flow animation if enabled
+      if (showVoltageFlowAnimation) {
+        drawFlowArrows(x1, y1, x2, y2);
+      }
+      
       if (label || value) drawLabelAndValue(x1, y1, x2, y2, label, value);
+    }
+    
+    function drawFlowArrows(x1, y1, x2, y2) {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      const angle = Math.atan2(dy, dx);
+      
+      ctx.save();
+      ctx.strokeStyle = '#ff6600';
+      ctx.fillStyle = '#ff6600';
+      ctx.lineWidth = 2;
+      
+      // Draw animated arrows along the wire
+      const arrowSpacing = 20;
+      const numArrows = Math.floor(len / arrowSpacing);
+      
+      for (let i = 0; i < numArrows; i++) {
+        const offset = (flowAnimationOffset + i * arrowSpacing) % len;
+        const arrowX = x1 + (dx / len) * offset;
+        const arrowY = y1 + (dy / len) * offset;
+        
+        // Draw arrow
+        ctx.save();
+        ctx.translate(arrowX, arrowY);
+        ctx.rotate(angle);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(-6, -3);
+        ctx.lineTo(-6, 3);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+      
+      ctx.restore();
     }
     function drawResistor(x1, y1, x2, y2, label, value) {
       // Draw a zigzag resistor between (x1, y1) and (x2, y2)
@@ -419,6 +813,32 @@
       ctx.moveTo(len*0.6, 0);
       ctx.lineTo(len, 0);
       ctx.strokeStyle = '#0077b7';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+      if (label || value) drawLabelAndValue(x1, y1, x2, y2, label, value);
+    }
+    function drawInductor(x1, y1, x2, y2, label, value) {
+      // Draw a coil/spiral inductor between (x1, y1) and (x2, y2)
+      const dx = x2 - x1, dy = y2 - y1;
+      const len = Math.sqrt(dx*dx + dy*dy);
+      const angle = Math.atan2(dy, dx);
+      ctx.save();
+      ctx.translate(x1, y1);
+      ctx.rotate(angle);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(len*0.2, 0);
+      // Draw coils
+      const coils = 4;
+      const coilWidth = (len*0.6) / coils;
+      const coilHeight = 12;
+      for (let i = 0; i < coils; i++) {
+        const startX = len*0.2 + i*coilWidth;
+        ctx.arc(startX + coilWidth/2, 0, coilHeight/2, Math.PI, 0, false);
+      }
+      ctx.lineTo(len, 0);
+      ctx.strokeStyle = '#00aa00';
       ctx.lineWidth = 2;
       ctx.stroke();
       ctx.restore();
@@ -489,6 +909,7 @@
           undoStack.push([...elements]);
           redoStack = [];
           elements.splice(i, 1);
+          circuitEdited = true; // Mark circuit as edited
           break;
         }
       }
@@ -499,32 +920,65 @@
       ctx.save();
       ctx.strokeStyle = '#eee';
       ctx.lineWidth = 1;
-      for (let x = 0; x < canvas.width; x += gridSize) {
+      
+      // Calculate the visible area in drawing area coordinates
+      const startX = Math.floor(-panOffset.x / scale / gridSize) * gridSize;
+      const endX = Math.ceil((UI.drawingArea.width - panOffset.x) / scale / gridSize) * gridSize;
+      const startY = Math.floor(-panOffset.y / scale / gridSize) * gridSize;
+      const endY = Math.ceil((UI.drawingArea.height - panOffset.y) / scale / gridSize) * gridSize;
+      
+      // Draw vertical lines
+      for (let x = startX; x <= endX; x += gridSize) {
         ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvas.height);
+        ctx.moveTo(x, startY);
+        ctx.lineTo(x, endY);
         ctx.stroke();
       }
-      for (let y = 0; y < canvas.height; y += gridSize) {
+      
+      // Draw horizontal lines
+      for (let y = startY; y <= endY; y += gridSize) {
         ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
+        ctx.moveTo(startX, y);
+        ctx.lineTo(endX, y);
         ctx.stroke();
       }
+      
       ctx.restore();
     }
     function redraw() {
+      // Don't draw if UI isn't initialized yet
+      if (!UI.drawingArea.width) {
+        return;
+      }
+      
+      ctx.save();
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw UI background
+      drawUIBackground();
+      
+      // Apply pan and zoom transformations for drawing area only
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(UI.drawingArea.x, UI.drawingArea.y, UI.drawingArea.width, UI.drawingArea.height);
+      ctx.clip();
+      
+      ctx.translate(UI.drawingArea.x + panOffset.x, UI.drawingArea.y + panOffset.y);
+      ctx.scale(scale, scale);
+      
+      // Adjust grid drawing to account for drawing area offset
       drawGrid();
+      
       for (const el of elements) {
-        if (el.type === 'wire') drawWire(el.x1, el.y1, el.x2, el.y2, el.label, el.value);
+        const isSelected = (selectedComponent === el);
+        if (el.type === 'wire') drawWire(el.x1, el.y1, el.x2, el.y2, el.label, el.value, isSelected);
         if (el.type === 'resistor') drawResistor(el.x1, el.y1, el.x2, el.y2, el.label, el.value);
         if (el.type === 'capacitor') drawCapacitor(el.x1, el.y1, el.x2, el.y2, el.label, el.value);
+        if (el.type === 'inductor') drawInductor(el.x1, el.y1, el.x2, el.y2, el.label, el.value);
         if (el.type === 'battery') drawBattery(el.x1, el.y1, el.x2, el.y2, el.label, el.value);
       }
       // Draw selected node highlight
       if (selectedNode && tool === 'selectNode') {
-        ctx.save();
         ctx.beginPath();
         ctx.arc(selectedNode.x, selectedNode.y, 10, 0, 2 * Math.PI);
         ctx.strokeStyle = '#ff6600';
@@ -532,9 +986,220 @@
         ctx.globalAlpha = 0.7;
         ctx.stroke();
         ctx.globalAlpha = 1.0;
-        ctx.restore();
+      }
+      // Draw selected elements highlight
+      if (selectedElements.length > 0 && tool === 'selectArea') {
+        ctx.strokeStyle = '#ff6600';
+        ctx.lineWidth = 3;
+        ctx.globalAlpha = 0.5;
+        for (const el of selectedElements) {
+          ctx.beginPath();
+          ctx.moveTo(el.x1, el.y1);
+          ctx.lineTo(el.x2, el.y2);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1.0;
+      }
+      // Draw selection box
+      if (selectionBox && tool === 'selectArea') {
+        ctx.strokeStyle = '#0066ff';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.strokeRect(
+          selectionBox.x1, 
+          selectionBox.y1, 
+          selectionBox.x2 - selectionBox.x1, 
+          selectionBox.y2 - selectionBox.y1
+        );
+        ctx.setLineDash([]);
+      }
+      
+      ctx.restore(); // Restore from clipping and transform
+      
+      // Draw all UI elements (in screen space)
+      drawAllUI();
+      
+      ctx.restore(); // Final restore
+    }
+    
+    // Draw UI background areas
+    function drawUIBackground() {
+      ctx.fillStyle = '#f0f0f0';
+      
+      // Top bar
+      ctx.fillRect(0, 0, canvas.width, UI.topBar.height);
+      
+      // Left toolbar
+      ctx.fillRect(UI.leftToolbar.x, UI.leftToolbar.y, UI.leftToolbar.width, canvas.height - UI.leftToolbar.y - UI.bottomCircuits.height);
+      
+      // Right sidebar
+      ctx.fillRect(UI.rightSidebar.x, UI.rightSidebar.y, UI.rightSidebar.width, canvas.height - UI.rightSidebar.y - UI.bottomCircuits.height);
+      
+      // Bottom circuits area
+      ctx.fillRect(0, canvas.height - UI.bottomCircuits.height, canvas.width, UI.bottomCircuits.height);
+      
+      // Drawing area background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(UI.drawingArea.x, UI.drawingArea.y, UI.drawingArea.width, UI.drawingArea.height);
+      
+      // Drawing area border
+      ctx.strokeStyle = '#888';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(UI.drawingArea.x, UI.drawingArea.y, UI.drawingArea.width, UI.drawingArea.height);
+    }
+    
+    // Draw all UI elements
+    function drawAllUI() {
+      ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transformation
+      
+      // Draw title
+      ctx.fillStyle = '#333';
+      ctx.font = 'bold 24px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('Circuit Designer', canvas.width / 2, 25);
+      
+      // Draw all buttons
+      drawButtons(uiButtons.leftToolbar, 'toolbar');
+      drawButtons(uiButtons.rightSidebar, 'normal');
+      drawButtons(uiButtons.topBar, 'normal');
+      drawButtons(uiButtons.bottomCircuits, 'normal');
+      
+      // Draw VIR display
+      drawVIRDisplay();
+      
+      // Draw current circuit name
+      drawCurrentCircuitName();
+    }
+    
+    // Draw a set of buttons
+    function drawButtons(buttons, type) {
+      for (const btn of buttons) {
+        // Handle separator
+        if (btn.isSeparator) {
+          ctx.strokeStyle = '#ccc';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(btn.x + 10, btn.y);
+          ctx.lineTo(btn.x + btn.width - 10, btn.y);
+          ctx.stroke();
+          continue;
+        }
+        
+        const isHovered = (hoveredButton === btn);
+        const isActive = (type === 'toolbar' && tool === btn.tool);
+        
+        // Button background
+        if (btn.isRed) {
+          ctx.fillStyle = isHovered ? '#ff5252' : '#ff6b6b';
+        } else if (isActive) {
+          ctx.fillStyle = 'purple';
+        } else if (isHovered) {
+          ctx.fillStyle = '#e0e0e0';
+        } else {
+          ctx.fillStyle = '#fafafa';
+        }
+        
+        ctx.fillRect(btn.x, btn.y, btn.width, btn.height);
+        
+        // Button border
+        ctx.strokeStyle = isActive ? '#6a0dad' : '#bbb';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(btn.x, btn.y, btn.width, btn.height);
+        
+        // Button text
+        ctx.fillStyle = (isActive || btn.isRed) ? (btn.isRed ? '#fff' : '#000') : '#333';
+        ctx.font = '14px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(btn.label, btn.x + btn.width / 2, btn.y + btn.height / 2);
       }
     }
+    
+    // Draw VIR display panel
+    function drawVIRDisplay() {
+      const x = UI.rightSidebar.x;
+      const y = UI.rightSidebar.y;
+      const width = UI.rightSidebar.width;
+      
+      // Panel background
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+      ctx.fillRect(x, y, width, 160);
+      
+      // Border
+      ctx.strokeStyle = '#6a0dad';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x, y, width, 160);
+      
+      // Title
+      ctx.fillStyle = '#6a0dad';
+      ctx.font = 'bold 16px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('Node Analysis', x + width / 2, y + 20);
+      
+      // Draw line under title
+      ctx.strokeStyle = '#6a0dad';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x + 15, y + 30);
+      ctx.lineTo(x + width - 15, y + 30);
+      ctx.stroke();
+      
+      // VIR values
+      ctx.fillStyle = '#333';
+      ctx.font = '14px Arial';
+      ctx.textAlign = 'left';
+      
+      const voltage = selectedNode ? '5.0 V' : '-';
+      const current = selectedNode ? '0.5 A' : '-';
+      const resistance = selectedNode ? '10.0 Ω' : '-';
+      
+      ctx.fillText('Voltage (V): ', x + 15, y + 55);
+      ctx.fillStyle = '#000';
+      ctx.font = 'bold 14px Arial';
+      ctx.fillText(voltage, x + 120, y + 55);
+      
+      ctx.fillStyle = '#333';
+      ctx.font = '14px Arial';
+      ctx.fillText('Current (I): ', x + 15, y + 85);
+      ctx.fillStyle = '#000';
+      ctx.font = 'bold 14px Arial';
+      ctx.fillText(current, x + 120, y + 85);
+      
+      ctx.fillStyle = '#333';
+      ctx.font = '14px Arial';
+      ctx.fillText('Resistance (R): ', x + 15, y + 115);
+      ctx.fillStyle = '#000';
+      ctx.font = 'bold 14px Arial';
+      ctx.fillText(resistance, x + 120, y + 115);
+    }
+    
+    // Draw current circuit name and example circuits title
+    function drawCurrentCircuitName() {
+      const bottomY = canvas.height - UI.bottomCircuits.height;
+      
+      // Draw "Example Circuits" title
+      ctx.fillStyle = '#333';
+      ctx.font = 'bold 16px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('Example Circuits', canvas.width / 2, bottomY + 12);
+      
+      // Draw current circuit name below title
+      ctx.fillStyle = '#ff6600';
+      ctx.font = 'bold 13px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('Current: ' + currentCircuitName, canvas.width / 2, bottomY + 30);
+    }
+    
+    function drawCanvasControls() {
+      // No longer needed - integrated into drawAllUI
+    }
+    
+    function isPointInButton(x, y, btn) {
+      return x >= btn.x && x <= btn.x + btn.width && 
+             y >= btn.y && y <= btn.y + btn.height;
+    }
+    
     // Helper: find nearest endpoint to (x, y) within snapDist, return {x, y} or null
     function findNearestEndpoint(x, y, snapDist = 18) {
       let nearest = null;
@@ -556,6 +1221,55 @@
       const rect = canvas.getBoundingClientRect();
       let mx = e.clientX - rect.left;
       let my = e.clientY - rect.top;
+      
+      // Check if clicking on any UI button (screen coordinates)
+      const allButtons = [
+        ...uiButtons.leftToolbar,
+        ...uiButtons.rightSidebar,
+        ...uiButtons.topBar,
+        ...uiButtons.bottomCircuits
+      ];
+      
+      for (const btn of allButtons) {
+        if (btn.isSeparator) continue; // Skip separators
+        if (isPointInButton(mx, my, btn)) {
+          if (btn.action) btn.action();
+          return;
+        }
+      }
+      
+      // Check if click is outside drawing area
+      if (mx < UI.drawingArea.x || mx > UI.drawingArea.x + UI.drawingArea.width ||
+          my < UI.drawingArea.y || my > UI.drawingArea.y + UI.drawingArea.height) {
+        return; // Ignore clicks outside drawing area
+      }
+      
+      if (tool === 'pan') {
+        // Start panning
+        isPanning = true;
+        panStart = { x: mx - panOffset.x, y: my - panOffset.y };
+        canvas.style.cursor = 'grabbing';
+        return;
+      }
+      
+      // Transform mouse coordinates for zoomed/panned canvas (relative to drawing area)
+      const drawingX = mx - UI.drawingArea.x;
+      const drawingY = my - UI.drawingArea.y;
+      const transformed = {
+        x: (drawingX - panOffset.x) / scale,
+        y: (drawingY - panOffset.y) / scale
+      };
+      mx = transformed.x;
+      my = transformed.y;
+      
+      if (tool === 'selectArea') {
+        // Start area selection
+        selectionBox = { x1: mx, y1: my, x2: mx, y2: my };
+        selectedElements = [];
+        drawing = true;
+        return;
+      }
+      
       // Snap start point if near existing endpoint
       const snap = findNearestEndpoint(mx, my);
       if (snap) { mx = snap.x; my = snap.y; }
@@ -568,14 +1282,54 @@
       }
     });
     canvas.addEventListener('mouseup', e => {
+      if (tool === 'pan' && isPanning) {
+        isPanning = false;
+        canvas.style.cursor = 'grab';
+        return;
+      }
+      
       if (!drawing) return;
       const rect = canvas.getBoundingClientRect();
       let endX = e.clientX - rect.left;
       let endY = e.clientY - rect.top;
+      
+      // Transform coordinates (relative to drawing area)
+      const drawingX = endX - UI.drawingArea.x;
+      const drawingY = endY - UI.drawingArea.y;
+      const transformed = {
+        x: (drawingX - panOffset.x) / scale,
+        y: (drawingY - panOffset.y) / scale
+      };
+      endX = transformed.x;
+      endY = transformed.y;
+      
+      if (tool === 'selectArea' && selectionBox) {
+        // Complete area selection
+        selectionBox.x2 = endX;
+        selectionBox.y2 = endY;
+        
+        // Find elements within selection box
+        const minX = Math.min(selectionBox.x1, selectionBox.x2);
+        const maxX = Math.max(selectionBox.x1, selectionBox.x2);
+        const minY = Math.min(selectionBox.y1, selectionBox.y2);
+        const maxY = Math.max(selectionBox.y1, selectionBox.y2);
+        
+        selectedElements = elements.filter(el => {
+          // Check if element's endpoints are within the selection box
+          return (el.x1 >= minX && el.x1 <= maxX && el.y1 >= minY && el.y1 <= maxY) ||
+                 (el.x2 >= minX && el.x2 <= maxX && el.y2 >= minY && el.y2 <= maxY);
+        });
+        
+        selectionBox = null;
+        drawing = false;
+        redraw();
+        return;
+      }
+      
       // Snap end point if near existing endpoint
       const snap = findNearestEndpoint(endX, endY);
       if (snap) { endX = snap.x; endY = snap.y; }
-      if (tool === 'wire' || tool === 'resistor' || tool === 'capacitor' || tool === 'battery') {
+      if (tool === 'wire' || tool === 'resistor' || tool === 'capacitor' || tool === 'inductor' || tool === 'battery') {
         undoStack.push([...elements]);
         redoStack = [];
         let label = '';
@@ -588,12 +1342,17 @@
         } else if (tool === 'capacitor') {
           label = 'C' + capacitorCount;
           capacitorCount++;
+        } else if (tool === 'inductor') {
+          label = 'L' + inductorCount;
+          value = '1 H';
+          inductorCount++;
         } else if (tool === 'battery') {
           label = 'B' + batteryCount;
           value = '5 V';
           batteryCount++;
         }
         elements.push({ type: tool, x1: startX, y1: startY, x2: endX, y2: endY, label: label, value: value });
+        circuitEdited = true; // Mark circuit as edited
         redraw();
       }
       drawing = false;
@@ -624,15 +1383,37 @@
     });
     // Enable label/value editing only in select mode
     canvas.addEventListener('click', function(e) {
-  if ((tool !== 'select' && tool !== 'selectNode') || drawing) return;
+      if ((tool !== 'select' && tool !== 'selectNode') || drawing) return;
       const rect = canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
+      let mx = e.clientX - rect.left;
+      let my = e.clientY - rect.top;
+      
+      // Check if click is outside drawing area
+      if (mx < UI.drawingArea.x || mx > UI.drawingArea.x + UI.drawingArea.width ||
+          my < UI.drawingArea.y || my > UI.drawingArea.y + UI.drawingArea.height) {
+        return; // Ignore clicks outside drawing area
+      }
+      
+      // Transform coordinates (relative to drawing area)
+      const drawingX = mx - UI.drawingArea.x;
+      const drawingY = my - UI.drawingArea.y;
+      const transformed = {
+        x: (drawingX - panOffset.x) / scale,
+        y: (drawingY - panOffset.y) / scale
+      };
+      mx = transformed.x;
+      my = transformed.y;
+      
       // Find topmost element near click
       if (tool === 'select') {
+        let foundElement = false;
         for (let i = elements.length - 1; i >= 0; i--) {
           const el = elements[i];
           if (isNearLine(mx, my, el.x1, el.y1, el.x2, el.y2, 16)) {
+            foundElement = true;
+            // Set selected component for visual highlight
+            selectedComponent = el;
+            
             if (!el.label) el.label = '';
             if (!el.value) el.value = '';
             // Save state for undo
@@ -643,6 +1424,7 @@
             let defaultUnit = '';
             if (el.type === 'resistor') defaultUnit = 'Ω';
             else if (el.type === 'capacitor') defaultUnit = 'F';
+            else if (el.type === 'inductor') defaultUnit = 'H';
             else if (el.type === 'battery') defaultUnit = 'V';
             else if (el.type === 'wire') defaultUnit = '';
             
@@ -658,14 +1440,22 @@
               if (result !== null) {
                 el.label = result.label;
                 el.value = result.value;
+                circuitEdited = true; // Mark circuit as edited
                 redraw();
               } else {
                 // User cancelled, revert undo stack
                 undoStack.pop();
+                selectedComponent = null; // Clear selection if cancelled
+                redraw();
               }
             });
             break;
           }
+        }
+        // If clicked outside any element, clear selection
+        if (!foundElement) {
+          selectedComponent = null;
+          redraw();
         }
       } else if (tool === 'selectNode') {
         // Find all endpoints
@@ -725,18 +1515,90 @@
     // Remove label/value editing on click
     // Optional: show preview while drawing
     canvas.addEventListener('mousemove', e => {
-      if (!drawing || tool === 'erase') return;
-      redraw();
       const rect = canvas.getBoundingClientRect();
-      let endX = e.clientX - rect.left;
-      let endY = e.clientY - rect.top;
+      let mx = e.clientX - rect.left;
+      let my = e.clientY - rect.top;
+      
+      // Check for button hover
+      const allButtons = [
+        ...uiButtons.leftToolbar,
+        ...uiButtons.rightSidebar,
+        ...uiButtons.topBar,
+        ...uiButtons.bottomCircuits
+      ];
+      
+      let foundHover = false;
+      for (const btn of allButtons) {
+        if (btn.isSeparator) continue; // Skip separators
+        if (isPointInButton(mx, my, btn)) {
+          if (hoveredButton !== btn) {
+            hoveredButton = btn;
+            redraw();
+          }
+          foundHover = true;
+          break;
+        }
+      }
+      
+      if (!foundHover && hoveredButton) {
+        hoveredButton = null;
+        redraw();
+      }
+      
+      if (tool === 'pan') {
+        canvas.style.cursor = isPanning ? 'grabbing' : 'grab';
+        if (isPanning) {
+          panOffset.x = mx - panStart.x;
+          panOffset.y = my - panStart.y;
+          redraw();
+        }
+        return;
+      }
+      
+      if (!drawing) return;
+      
+      // Transform coordinates (relative to drawing area)
+      const drawingX = mx - UI.drawingArea.x;
+      const drawingY = my - UI.drawingArea.y;
+      const transformed = {
+        x: (drawingX - panOffset.x) / scale,
+        y: (drawingY - panOffset.y) / scale
+      };
+      mx = transformed.x;
+      my = transformed.y;
+      
+      if (tool === 'selectArea' && selectionBox) {
+        // Update selection box while dragging
+        selectionBox.x2 = mx;
+        selectionBox.y2 = my;
+        redraw();
+        return;
+      }
+      
+      if (tool === 'erase') return;
+      
+      redraw();
+      
+      // Draw preview in transformed space
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(UI.drawingArea.x, UI.drawingArea.y, UI.drawingArea.width, UI.drawingArea.height);
+      ctx.clip();
+      ctx.translate(UI.drawingArea.x + panOffset.x, UI.drawingArea.y + panOffset.y);
+      ctx.scale(scale, scale);
+      
+      let endX = mx;
+      let endY = my;
       // Snap preview end point if near existing endpoint
       const snap = findNearestEndpoint(endX, endY);
       if (snap) { endX = snap.x; endY = snap.y; }
       if (tool === 'wire') drawWire(startX, startY, endX, endY);
       if (tool === 'resistor') drawResistor(startX, startY, endX, endY);
       if (tool === 'capacitor') drawCapacitor(startX, startY, endX, endY);
+      if (tool === 'inductor') drawInductor(startX, startY, endX, endY);
       if (tool === 'battery') drawBattery(startX, startY, endX, endY);
+      
+      ctx.restore();
     });
   </script>
 </body>
