@@ -119,6 +119,10 @@
         <input type="text" id="labelInput" placeholder="Enter label (e.g., R1, C2)">
         <label for="valueInput">Value <span id="unitLabel" style="color:#888; font-weight:normal;"></span>:</label>
         <input type="text" id="valueInput" placeholder="Enter value (e.g., 10, 5)">
+        <div id="resistanceContainer" style="display:none;">
+          <label for="resistanceInput">Internal Resistance (Ω):</label>
+          <input type="text" id="resistanceInput" placeholder="Enter resistance (e.g., 0.1)">
+        </div>
       </div>
       <p id="dialogMessage" style="margin:0; color:#555; line-height:1.5;"></p>
       <div id="dialogButtons">
@@ -128,10 +132,231 @@
     </div>
   </div>
   
+  <!-- Custom Cell Dialog -->
+  <div id="customCellDialog" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; justify-content: center; align-items: center; overflow-y: auto;">
+    <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); width: 600px; max-width: 90%; max-height: 90vh; overflow-y: auto; margin: 20px; animation: slideIn 0.3s ease;">
+      <h3 style="margin: 0 0 20px 0; color: #333; font-size: 1.4rem;">Custom Battery Cell</h3>
+      
+      <div style="margin-bottom: 20px; padding: 15px; background: #f0f8ff; border-left: 4px solid #5aaeFF; border-radius: 4px;">
+        <p style="margin: 0; font-size: 0.9rem; color: #555;">
+          Enter battery specifications below or upload a JSON file.
+        </p>
+      </div>
+      
+      <!-- Form Fields -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+        <!-- Basic Properties -->
+        <div style="grid-column: 1 / -1;">
+          <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600; font-size: 0.9rem;">Cell Name *</label>
+          <input type="text" id="customCellName" placeholder="e.g., Custom LiFePO4" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box;">
+        </div>
+        
+        <div>
+          <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600; font-size: 0.9rem;">Voltage (V) *</label>
+          <input type="number" id="customCellVoltage" step="0.1" placeholder="3.7" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box;">
+        </div>
+        
+        <div>
+          <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600; font-size: 0.9rem;">Capacity (mAh) *</label>
+          <input type="number" id="customCellCapacity" step="1" placeholder="3000" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box;">
+        </div>
+        
+        <div>
+          <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600; font-size: 0.9rem;">Chemistry *</label>
+          <select id="customCellChemistry" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box;">
+            <option value="Li-ion">Li-ion</option>
+            <option value="LiFePO4">LiFePO4</option>
+            <option value="Li-Po">Li-Po</option>
+            <option value="NiMH">NiMH</option>
+            <option value="NiCd">NiCd</option>
+            <option value="Alkaline">Alkaline</option>
+            <option value="Lithium">Lithium</option>
+            <option value="Custom">Custom</option>
+          </select>
+        </div>
+        
+        <div id="customChemistryContainer" style="display: none; grid-column: 1 / -1;">
+          <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600; font-size: 0.9rem;">Custom Chemistry Description</label>
+          <input type="text" id="customChemistryDescription" placeholder="e.g., Solid-state lithium metal" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box;">
+        </div>
+        
+        <div>
+          <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600; font-size: 0.9rem;">Weight (g)</label>
+          <input type="number" id="customCellWeight" step="0.1" placeholder="48" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box;">
+        </div>
+        
+        <div>
+          <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600; font-size: 0.9rem;">Diameter (mm)</label>
+          <input type="number" id="customCellDiameter" step="0.1" placeholder="18.5" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box;">
+        </div>
+        
+        <div>
+          <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600; font-size: 0.9rem;">Length (mm)</label>
+          <input type="number" id="customCellLength" step="0.1" placeholder="65.2" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box;">
+        </div>
+        
+        <!-- Temperature Properties -->
+        <div style="grid-column: 1 / -1; margin-top: 10px; padding-top: 10px; border-top: 2px solid #eee;">
+          <h4 style="margin: 0 0 10px 0; color: #333; font-size: 1rem;">Temperature Properties</h4>
+        </div>
+        
+        <div>
+          <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600; font-size: 0.9rem;">Min Temp (°C)</label>
+          <input type="number" id="customCellTempMin" step="1" placeholder="-20" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box;">
+        </div>
+        
+        <div>
+          <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600; font-size: 0.9rem;">Max Temp (°C)</label>
+          <input type="number" id="customCellTempMax" step="1" placeholder="60" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box;">
+        </div>
+        
+        <div>
+          <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600; font-size: 0.9rem;">Optimal Temp (°C)</label>
+          <input type="number" id="customCellTempOptimal" step="1" placeholder="20" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box;">
+        </div>
+        
+        <div>
+          <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600; font-size: 0.9rem;">Temp Coeff (%/°C)</label>
+          <input type="number" id="customCellTempCoeff" step="0.1" placeholder="-0.5" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box;">
+        </div>
+        
+        <!-- Electrical Properties -->
+        <div style="grid-column: 1 / -1; margin-top: 10px; padding-top: 10px; border-top: 2px solid #eee;">
+          <h4 style="margin: 0 0 10px 0; color: #333; font-size: 1rem;">Electrical Properties</h4>
+        </div>
+        
+        <div>
+          <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600; font-size: 0.9rem;">Internal R (mΩ)</label>
+          <input type="number" id="customCellResistance" step="1" placeholder="45" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box;">
+        </div>
+        
+        <div>
+          <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600; font-size: 0.9rem;">Thermal Eff (%)</label>
+          <input type="number" id="customCellEfficiency" step="0.1" min="0" max="100" placeholder="95" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box;">
+        </div>
+        
+        <div>
+          <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600; font-size: 0.9rem;">Cycle Life</label>
+          <input type="number" id="customCellCycleLife" step="1" placeholder="500" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box;">
+        </div>
+        
+        <div>
+          <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600; font-size: 0.9rem;">Self-Discharge</label>
+          <input type="text" id="customCellSelfDischarge" placeholder="2-3%/month" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box;">
+        </div>
+        
+        <div style="grid-column: 1 / -1; margin-top: 10px; padding-top: 10px; border-top: 2px solid #eee;">
+          <h4 style="margin: 0 0 10px 0; color: #333; font-size: 1rem;">Electrochemical Reactions</h4>
+        </div>
+        
+        <div style="grid-column: 1 / -1;">
+          <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600; font-size: 0.9rem;">
+            <span style="color: #d63031;">Cathode (Reduction during Discharge)</span>
+          </label>
+          <input type="text" id="customCellCathodeReaction" placeholder="LiCoO₂ + Li⁺ + e⁻ → Li₁₋ₓCoO₂" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box; margin-bottom: 8px;">
+        </div>
+        
+        <div style="grid-column: 1 / -1;">
+          <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600; font-size: 0.9rem;">
+            <span style="color: #0984e3;">Anode (Oxidation during Discharge)</span>
+          </label>
+          <input type="text" id="customCellAnodeReaction" placeholder="LiC₆ → C₆ + Li⁺ + e⁻" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box; margin-bottom: 8px;">
+        </div>
+        
+        <div style="grid-column: 1 / -1;">
+          <label style="display: block; margin-bottom: 5px; color: #333; font-weight: 600; font-size: 0.9rem;">
+            Overall Reaction (Discharge →, Charge ←)
+          </label>
+          <input type="text" id="customCellReaction" placeholder="LiCoO₂ + C₆ ⇌ Li₁₋ₓCoO₂ + LiₓC₆" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box; margin-bottom: 8px;">
+        </div>
+        
+        <div style="grid-column: 1 / -1;">
+          <!-- Chemical notation helper buttons -->
+          <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 5px;">
+            <span style="font-size: 0.8rem; color: #666; margin-right: 8px; align-self: center;">Subscripts:</span>
+            <button onclick="insertChemical('₀', event)" style="padding: 4px 8px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">₀</button>
+            <button onclick="insertChemical('₁', event)" style="padding: 4px 8px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">₁</button>
+            <button onclick="insertChemical('₂', event)" style="padding: 4px 8px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">₂</button>
+            <button onclick="insertChemical('₃', event)" style="padding: 4px 8px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">₃</button>
+            <button onclick="insertChemical('₄', event)" style="padding: 4px 8px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">₄</button>
+            <button onclick="insertChemical('₅', event)" style="padding: 4px 8px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">₅</button>
+            <button onclick="insertChemical('₆', event)" style="padding: 4px 8px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">₆</button>
+            <button onclick="insertChemical('₇', event)" style="padding: 4px 8px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">₇</button>
+            <button onclick="insertChemical('₈', event)" style="padding: 4px 8px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">₈</button>
+            <button onclick="insertChemical('₉', event)" style="padding: 4px 8px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">₉</button>
+            <button onclick="insertChemical('ₓ', event)" style="padding: 4px 8px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">ₓ</button>
+          </div>
+          
+          <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 5px;">
+            <span style="font-size: 0.8rem; color: #666; margin-right: 8px; align-self: center;">Superscripts:</span>
+            <button onclick="insertChemical('⁺', event)" style="padding: 4px 8px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">⁺</button>
+            <button onclick="insertChemical('⁻', event)" style="padding: 4px 8px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">⁻</button>
+            <button onclick="insertChemical('e⁻', event)" style="padding: 4px 10px; background: #ffe8e8; border: 1px solid #ffcccc; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">e⁻</button>
+          </div>
+          
+          <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 5px;">
+            <span style="font-size: 0.8rem; color: #666; margin-right: 8px; align-self: center;">Arrows:</span>
+            <button onclick="insertChemical(' → ', event)" style="padding: 4px 10px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">→</button>
+            <button onclick="insertChemical(' ← ', event)" style="padding: 4px 10px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">←</button>
+            <button onclick="insertChemical(' ⇌ ', event)" style="padding: 4px 10px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">⇌</button>
+            <button onclick="insertChemical(' ⇄ ', event)" style="padding: 4px 10px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">⇄</button>
+            <button onclick="insertChemical(' + ', event)" style="padding: 4px 10px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">+</button>
+          </div>
+          
+          <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+            <span style="font-size: 0.8rem; color: #666; margin-right: 8px; align-self: center;">Elements:</span>
+            <button onclick="insertChemical('Li', event)" style="padding: 4px 8px; background: #e8f4f8; border: 1px solid #b3d9e6; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">Li</button>
+            <button onclick="insertChemical('Co', event)" style="padding: 4px 8px; background: #e8f4f8; border: 1px solid #b3d9e6; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">Co</button>
+            <button onclick="insertChemical('Ni', event)" style="padding: 4px 8px; background: #e8f4f8; border: 1px solid #b3d9e6; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">Ni</button>
+            <button onclick="insertChemical('Mn', event)" style="padding: 4px 8px; background: #e8f4f8; border: 1px solid #b3d9e6; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">Mn</button>
+            <button onclick="insertChemical('Fe', event)" style="padding: 4px 8px; background: #e8f4f8; border: 1px solid #b3d9e6; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">Fe</button>
+            <button onclick="insertChemical('O', event)" style="padding: 4px 8px; background: #e8f4f8; border: 1px solid #b3d9e6; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">O</button>
+            <button onclick="insertChemical('C', event)" style="padding: 4px 8px; background: #e8f4f8; border: 1px solid #b3d9e6; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">C</button>
+            <button onclick="insertChemical('H', event)" style="padding: 4px 8px; background: #e8f4f8; border: 1px solid #b3d9e6; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">H</button>
+            <button onclick="insertChemical('Zn', event)" style="padding: 4px 8px; background: #e8f4f8; border: 1px solid #b3d9e6; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">Zn</button>
+            <button onclick="insertChemical('P', event)" style="padding: 4px 8px; background: #e8f4f8; border: 1px solid #b3d9e6; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">P</button>
+            <button onclick="insertChemical('Cl', event)" style="padding: 4px 8px; background: #e8f4f8; border: 1px solid #b3d9e6; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">Cl</button>
+            <button onclick="insertChemical('N')" style="padding: 4px 8px; background: #e8f4f8; border: 1px solid #b3d9e6; border-radius: 3px; font-size: 0.85rem; cursor: pointer;">N</button>
+          </div>
+        </div>
+      </div>
+      
+      <div style="display: flex; gap: 12px; margin-bottom: 15px;">
+        <button id="uploadJsonBtn" style="flex: 1; padding: 12px 20px; background: #5aaeFF; color: white; border: none; border-radius: 6px; font-size: 0.95rem; cursor: pointer; transition: all 0.2s;">
+          📁 Load from JSON
+        </button>
+      </div>
+      
+      <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+        <button onclick="closeCustomCellDialog()" style="padding: 10px 24px; background: #e0e0e0; color: #333; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; transition: all 0.2s;">
+          Cancel
+        </button>
+        <button onclick="saveCustomCell()" style="padding: 10px 24px; background: #6a0dad; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; transition: all 0.2s;">
+          Save Custom Cell
+        </button>
+      </div>
+    </div>
+  </div>
+  
   <input type="file" id="importFileInput" style="display:none" accept="application/json">
   <canvas id="schematicCanvas"></canvas>
   
   <script>
+  // Polyfill for roundRect (for older browsers)
+  if (!CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function(x, y, width, height, radius) {
+      this.moveTo(x + radius, y);
+      this.lineTo(x + width - radius, y);
+      this.arcTo(x + width, y, x + width, y + radius, radius);
+      this.lineTo(x + width, y + height - radius);
+      this.arcTo(x + width, y + height, x + width - radius, y + height, radius);
+      this.lineTo(x + radius, y + height);
+      this.arcTo(x, y + height, x, y + height - radius, radius);
+      this.lineTo(x, y + radius);
+      this.arcTo(x, y, x + radius, y, radius);
+    };
+  }
+  
   // Custom dialog logic
   let dialogResolve = null;
   let currentElement = null;
@@ -174,20 +399,29 @@
     
     elements = [];
     
-    // Update current circuit name
-    const circuitNamesMap = {
+    // Update current circuit/pack name based on mode
+    const circuitNamesMap = currentMode === 'Battery Pack' ? {
+      'series': '3S1P Pack',
+      'parallel': '1S3P Pack',
+      'divider': '2S2P Pack',
+      'thevenin': 'Custom Pack A',
+      'norton': 'Custom Pack B'
+    } : {
       'series': 'Series Circuit',
       'parallel': 'Parallel Circuit',
       'divider': 'Voltage Divider',
       'thevenin': 'Thevenin Equivalent',
       'norton': 'Norton Equivalent'
     };
-    currentCircuitName = circuitNamesMap[type] || 'Custom Circuit';
+    currentCircuitName = circuitNamesMap[type] || (currentMode === 'Battery Pack' ? 'Custom Pack' : 'Custom Circuit');
     currentCircuitIndex = circuitTypes.indexOf(type);
     
+    // Determine resistance values based on mode
+    const batteryResistance = currentMode === 'Battery Pack' ? '0.05 Ω' : '0.1 Ω';
+    
     if (type === 'series') {
-      // Simple series circuit: Battery - R1 - R2
-      elements.push({ type: 'battery', x1: 150, y1: 200, x2: 150, y2: 300, label: 'B0', value: '5 V' });
+      // Simple series circuit: Battery - R1 - R2 (or 3S1P pack in battery mode)
+      elements.push({ type: 'battery', x1: 150, y1: 200, x2: 150, y2: 300, label: 'B0', value: '5 V', resistance: batteryResistance });
       elements.push({ type: 'wire', x1: 150, y1: 300, x2: 250, y2: 300, label: '', value: '' });
       elements.push({ type: 'resistor', x1: 250, y1: 300, x2: 400, y2: 300, label: 'R0', value: '5 Ω' });
       elements.push({ type: 'resistor', x1: 400, y1: 300, x2: 550, y2: 300, label: 'R1', value: '5 Ω' });
@@ -197,8 +431,8 @@
       resistorCount = 2;
       batteryCount = 1;
     } else if (type === 'parallel') {
-      // Parallel circuit: Battery with two parallel resistors
-      elements.push({ type: 'battery', x1: 150, y1: 200, x2: 150, y2: 300, label: 'B0', value: '5 V' });
+      // Parallel circuit: Battery with two parallel resistors (or 1S3P pack in battery mode)
+      elements.push({ type: 'battery', x1: 150, y1: 200, x2: 150, y2: 300, label: 'B0', value: '5 V', resistance: batteryResistance });
       elements.push({ type: 'wire', x1: 150, y1: 300, x2: 300, y2: 300, label: '', value: '' });
       // Top branch
       elements.push({ type: 'resistor', x1: 300, y1: 250, x2: 500, y2: 250, label: 'R0', value: '5 Ω' });
@@ -214,8 +448,8 @@
       resistorCount = 2;
       batteryCount = 1;
     } else if (type === 'divider') {
-      // Voltage divider circuit
-      elements.push({ type: 'battery', x1: 150, y1: 150, x2: 150, y2: 250, label: 'B0', value: '5 V' });
+      // Voltage divider circuit (or 2S2P pack in battery mode)
+      elements.push({ type: 'battery', x1: 150, y1: 150, x2: 150, y2: 250, label: 'B0', value: '5 V', resistance: batteryResistance });
       elements.push({ type: 'wire', x1: 150, y1: 250, x2: 250, y2: 250, label: '', value: '' });
       elements.push({ type: 'resistor', x1: 250, y1: 250, x2: 250, y2: 350, label: 'R0', value: '5 Ω' });
       elements.push({ type: 'resistor', x1: 250, y1: 350, x2: 250, y2: 450, label: 'R1', value: '5 Ω' });
@@ -226,7 +460,7 @@
     } else if (type === 'thevenin') {
       // Thevenin equivalent circuit: Voltage source in series with resistance
       // Shows Vth (Thevenin voltage) and Rth (Thevenin resistance)
-      elements.push({ type: 'battery', x1: 200, y1: 200, x2: 200, y2: 300, label: 'Vth', value: '10 V' });
+      elements.push({ type: 'battery', x1: 200, y1: 200, x2: 200, y2: 300, label: 'Vth', value: '10 V', resistance: batteryResistance });
       elements.push({ type: 'wire', x1: 200, y1: 300, x2: 300, y2: 300, label: '', value: '' });
       elements.push({ type: 'resistor', x1: 300, y1: 300, x2: 500, y2: 300, label: 'Rth', value: '2 Ω' });
       // Load resistor
@@ -239,7 +473,7 @@
       // Norton equivalent circuit: Current source in parallel with resistance
       // Shows In (Norton current) and Rn (Norton resistance)
       // Representing current source as battery with special label
-      elements.push({ type: 'battery', x1: 200, y1: 200, x2: 200, y2: 350, label: 'In', value: '5 A' });
+      elements.push({ type: 'battery', x1: 200, y1: 200, x2: 200, y2: 350, label: 'In', value: '5 A', resistance: batteryResistance });
       // Norton resistance in parallel
       elements.push({ type: 'resistor', x1: 350, y1: 200, x2: 350, y2: 350, label: 'Rn', value: '2 Ω' });
       // Load resistor in parallel
@@ -257,10 +491,11 @@
     redraw();
   }
 
-  function showDialog(title, labelValue, valueValue, unit) {
+  function showDialog(title, labelValue, valueValue, unit, element) {
     return new Promise((resolve) => {
       dialogResolve = resolve;
       currentUnit = unit || '';
+      currentElement = element || null; // Store element reference for battery resistance
       document.getElementById('dialogTitle').textContent = title;
       
       // Show input fields, hide message
@@ -282,6 +517,19 @@
         unitLabel.textContent = '(unit: ' + currentUnit + ')';
       } else {
         unitLabel.textContent = '';
+      }
+      
+      // Show resistance field for batteries
+      const resistanceContainer = document.getElementById('resistanceContainer');
+      if (element && element.type === 'battery') {
+        resistanceContainer.style.display = 'block';
+        let cleanResistance = element.resistance || '0.1 Ω';
+        if (cleanResistance.endsWith(' Ω')) {
+          cleanResistance = cleanResistance.slice(0, -2).trim();
+        }
+        document.getElementById('resistanceInput').value = cleanResistance;
+      } else {
+        resistanceContainer.style.display = 'none';
       }
       
       document.getElementById('customDialog').style.display = 'flex';
@@ -315,16 +563,193 @@
         if (currentUnit && value && !value.endsWith(currentUnit)) {
           value = value + ' ' + currentUnit;
         }
-        dialogResolve({
+        const result = {
           label: document.getElementById('labelInput').value,
           value: value
-        });
+        };
+        // Add resistance for batteries
+        if (currentElement && currentElement.type === 'battery') {
+          let resistance = document.getElementById('resistanceInput').value.trim();
+          if (resistance && !resistance.endsWith('Ω')) {
+            resistance = resistance + ' Ω';
+          }
+          result.resistance = resistance;
+        }
+        dialogResolve(result);
       } else {
         dialogResolve(null);
       }
       dialogResolve = null;
+      currentElement = null; // Clear element reference
     }
   }
+  
+  // Custom Cell Dialog Functions
+  function showCustomCellDialog() {
+    // Get current custom cell or defaults
+    const customCell = batteryTypes.find(t => t.isCustom) || {};
+    
+    // Populate form with current values or defaults
+    document.getElementById('customCellName').value = customCell.name || 'Custom Cell';
+    document.getElementById('customCellVoltage').value = customCell.voltage || 3.7;
+    document.getElementById('customCellCapacity').value = customCell.capacity || 3000;
+    document.getElementById('customCellChemistry').value = customCell.chemistry || 'Li-ion';
+    document.getElementById('customCellWeight').value = customCell.weight || 48;
+    document.getElementById('customCellDiameter').value = customCell.diameter || 18.5;
+    document.getElementById('customCellLength').value = customCell.length || 65.2;
+    document.getElementById('customCellTempMin').value = customCell.tempMin !== undefined ? customCell.tempMin : -20;
+    document.getElementById('customCellTempMax').value = customCell.tempMax !== undefined ? customCell.tempMax : 60;
+    document.getElementById('customCellTempOptimal').value = customCell.tempOptimal !== undefined ? customCell.tempOptimal : 20;
+    document.getElementById('customCellTempCoeff').value = customCell.tempCoefficient !== undefined ? customCell.tempCoefficient : -0.5;
+    document.getElementById('customCellResistance').value = customCell.internalResistance !== undefined ? customCell.internalResistance : 45;
+    document.getElementById('customCellEfficiency').value = customCell.thermalEfficiency !== undefined ? customCell.thermalEfficiency : 95;
+    document.getElementById('customCellCycleLife').value = customCell.cycleLife || 500;
+    document.getElementById('customCellSelfDischarge').value = customCell.selfDischarge || '2-3%/month';
+    document.getElementById('customCellCathodeReaction').value = customCell.cathodeReaction || 'LiCoO₂ + Li⁺ + e⁻ → Li₁₋ₓCoO₂';
+    document.getElementById('customCellAnodeReaction').value = customCell.anodeReaction || 'LiC₆ → C₆ + Li⁺ + e⁻';
+    document.getElementById('customCellReaction').value = customCell.reaction || 'LiCoO₂ + C₆ ⇌ Li₁₋ₓCoO₂ + LiₓC₆';
+    document.getElementById('customChemistryDescription').value = customCell.customChemistryDescription || '';
+    
+    // Show/hide custom chemistry field based on selection
+    const customContainer = document.getElementById('customChemistryContainer');
+    if (customCell.chemistry === 'Custom') {
+      customContainer.style.display = 'block';
+    } else {
+      customContainer.style.display = 'none';
+    }
+    
+    // Set up focus tracking for reaction input fields
+    const reactionFields = ['customCellCathodeReaction', 'customCellAnodeReaction', 'customCellReaction'];
+    reactionFields.forEach(fieldId => {
+      const field = document.getElementById(fieldId);
+      field.addEventListener('focus', function() {
+        lastFocusedReactionInput = this;
+      });
+    });
+    
+    const dialog = document.getElementById('customCellDialog');
+    dialog.style.display = 'flex';
+  }
+  
+  function closeCustomCellDialog() {
+    const dialog = document.getElementById('customCellDialog');
+    dialog.style.display = 'none';
+    // Revert to previous battery type if user cancels
+    if (batteryModules[selectedModuleIndex].cellType === 'Custom Cell') {
+      // Find first non-custom battery
+      const firstNonCustom = batteryTypes.find(t => !t.isCustom);
+      if (firstNonCustom) {
+        batteryModules[selectedModuleIndex].cellType = firstNonCustom.name;
+      }
+    }
+    redraw();
+  }
+  
+  // Track which input field was last focused for chemical insertion
+  let lastFocusedReactionInput = null;
+  
+  function insertChemical(text, event) {
+    event.preventDefault();
+    
+    // Determine which input to use
+    let input = lastFocusedReactionInput;
+    
+    // If no field was focused, default to overall reaction field
+    if (!input || !document.contains(input)) {
+      input = document.getElementById('customCellReaction');
+    }
+    
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    const currentValue = input.value;
+    
+    // Insert text at cursor position
+    input.value = currentValue.substring(0, start) + text + currentValue.substring(end);
+    
+    // Move cursor to end of inserted text
+    const newCursorPos = start + text.length;
+    input.selectionStart = newCursorPos;
+    input.selectionEnd = newCursorPos;
+    
+    // Focus back on input
+    input.focus();
+  }
+  
+  function saveCustomCell() {
+    // Validate required fields
+    const name = document.getElementById('customCellName').value.trim();
+    const voltage = parseFloat(document.getElementById('customCellVoltage').value);
+    const capacity = parseFloat(document.getElementById('customCellCapacity').value);
+    
+    if (!name || !voltage || !capacity) {
+      alert('Please fill in all required fields: Name, Voltage, and Capacity');
+      return;
+    }
+    
+    // Find Custom Cell entry and update it
+    const customCellIndex = batteryTypes.findIndex(t => t.isCustom);
+    if (customCellIndex !== -1) {
+      const diameter = document.getElementById('customCellDiameter').value;
+      const length = document.getElementById('customCellLength').value;
+      const chemistry = document.getElementById('customCellChemistry').value || 'Li-ion';
+      const customChemDesc = document.getElementById('customChemistryDescription').value;
+      
+      batteryTypes[customCellIndex] = {
+        name: name,
+        voltage: voltage,
+        capacity: capacity,
+        chemistry: chemistry,
+        customChemistryDescription: customChemDesc || undefined,
+        weight: parseFloat(document.getElementById('customCellWeight').value) || 48,
+        diameter: diameter ? parseFloat(diameter) : null,
+        length: length ? parseFloat(length) : null,
+        cathodeReaction: document.getElementById('customCellCathodeReaction').value || 'LiCoO₂ + Li⁺ + e⁻ → Li₁₋ₓCoO₂',
+        anodeReaction: document.getElementById('customCellAnodeReaction').value || 'LiC₆ → C₆ + Li⁺ + e⁻',
+        reaction: document.getElementById('customCellReaction').value || 'LiCoO₂ + C₆ ⇌ Li₁₋ₓCoO₂ + LiₓC₆',
+        tempMin: parseFloat(document.getElementById('customCellTempMin').value) || -20,
+        tempMax: parseFloat(document.getElementById('customCellTempMax').value) || 60,
+        tempOptimal: parseFloat(document.getElementById('customCellTempOptimal').value) || 20,
+        cycleLife: parseInt(document.getElementById('customCellCycleLife').value) || 500,
+        selfDischarge: document.getElementById('customCellSelfDischarge').value || '2-3%/month',
+        internalResistance: parseFloat(document.getElementById('customCellResistance').value) || 45,
+        thermalEfficiency: parseFloat(document.getElementById('customCellEfficiency').value) || 95,
+        tempCoefficient: parseFloat(document.getElementById('customCellTempCoeff').value) || -0.5,
+        isCustom: true
+      };
+      
+      // Update the selected battery type for the current module
+      batteryModules[selectedModuleIndex].cellType = batteryTypes[customCellIndex].name;
+      
+      // Close dialog
+      document.getElementById('customCellDialog').style.display = 'none';
+      
+      alert(`Custom cell "${name}" saved successfully!`);
+      redraw();
+    }
+  }
+  
+  // Setup upload button in custom cell dialog
+  document.addEventListener('DOMContentLoaded', function() {
+    const uploadBtn = document.getElementById('uploadJsonBtn');
+    if (uploadBtn) {
+      uploadBtn.addEventListener('click', function() {
+        document.getElementById('jsonFileInput').click();
+      });
+    }
+    
+    // Handle chemistry dropdown change to show/hide custom chemistry field
+    const chemistrySelect = document.getElementById('customCellChemistry');
+    if (chemistrySelect) {
+      chemistrySelect.addEventListener('change', function() {
+        const customContainer = document.getElementById('customChemistryContainer');
+        if (this.value === 'Custom') {
+          customContainer.style.display = 'block';
+        } else {
+          customContainer.style.display = 'none';
+        }
+      });
+    }
+  });
 
   // Handle Enter key in dialog
   document.addEventListener('keydown', function(e) {
@@ -504,11 +929,11 @@
     // UI Layout Constants
     const UI = {
       // Left toolbar
-      leftToolbar: { x: 10, y: 60, width: 180, padding: 10, buttonHeight: 28, gap: 4 },
+      leftToolbar: { x: 10, y: 70, width: 180, padding: 10, buttonHeight: 28, gap: 4 },
       // Right sidebar
-      rightSidebar: { width: 220, padding: 15, y: 60 },
+      rightSidebar: { width: 220, padding: 15, y: 70 },
       // Top bar
-      topBar: { height: 50, padding: 10 },
+      topBar: { height: 60, padding: 10 },
       // Bottom circuits
       bottomCircuits: { height: 80, padding: 10 },
       // Drawing area (calculated dynamically)
@@ -558,12 +983,387 @@
     leftToolbar: [],
     rightSidebar: [],
     topBar: [],
-    bottomCircuits: []
+    bottomCircuits: [],
+    modeToggle: [],
+    generateSchema: []
   };
   let hoveredButton = null;
   let currentCircuitIndex = 0;
   const circuitNames = ['series', 'parallel', 'divider', 'thevenin', 'norton'];
   let currentCircuitName = 'No Circuit';
+  let currentMode = 'Circuit Designer'; // 'Circuit Designer' or 'Battery Pack'
+  
+  // Battery Pack mode variables
+  let batteryModules = [
+    {
+      id: 1,
+      name: 'Module 1',
+      cellType: '18650',
+      seriesCount: 1,
+      parallelCount: 1,
+      configText: '1S1P'
+    }
+  ];
+  let nextModuleId = 2;
+  let selectedModuleIndex = 0;
+  let batteryTypes = [
+    { 
+      name: '18650', voltage: 3.7, capacity: 3000, chemistry: 'Li-ion', weight: 45, diameter: 18, length: 65,
+      cathodeReaction: 'LiCoO₂ + xLi⁺ + xe⁻ → Li₁₋ₓCoO₂',
+      anodeReaction: 'LiₓC₆ → C₆ + xLi⁺ + xe⁻',
+      reaction: 'LiCoO₂ + C₆ ⇌ Li₁₋ₓCoO₂ + LiₓC₆',
+      tempMin: -20, tempMax: 60, tempOptimal: 20,
+      cycleLife: 500, selfDischarge: '2-3%/month', internalResistance: 50,
+      thermalEfficiency: 95, tempCoefficient: -0.5 // % efficiency, %/°C from optimal
+    },
+    { 
+      name: '21700', voltage: 3.7, capacity: 5000, chemistry: 'Li-ion', weight: 70, diameter: 21, length: 70,
+      cathodeReaction: 'LiNiMnCoO₂ + xLi⁺ + xe⁻ → Li₁₋ₓNiMnCoO₂',
+      anodeReaction: 'LiₓC₆ → C₆ + xLi⁺ + xe⁻',
+      reaction: 'LiNiMnCoO₂ + C₆ ⇌ Li₁₋ₓNiMnCoO₂ + LiₓC₆',
+      tempMin: -20, tempMax: 60, tempOptimal: 20,
+      cycleLife: 800, selfDischarge: '2-3%/month', internalResistance: 40,
+      thermalEfficiency: 96, tempCoefficient: -0.4
+    },
+    { 
+      name: '26650', voltage: 3.7, capacity: 5000, chemistry: 'Li-ion', weight: 90, diameter: 26, length: 65,
+      cathodeReaction: 'LiFePO₄ + Li⁺ + e⁻ → FePO₄',
+      anodeReaction: 'LiC₆ → C₆ + Li⁺ + e⁻',
+      reaction: 'LiFePO₄ + C₆ ⇌ FePO₄ + LiC₆',
+      tempMin: -20, tempMax: 60, tempOptimal: 25,
+      cycleLife: 2000, selfDischarge: '2-3%/month', internalResistance: 35,
+      thermalEfficiency: 97, tempCoefficient: -0.3
+    },
+    { 
+      name: 'AA', voltage: 1.5, capacity: 2500, chemistry: 'Alkaline', weight: 23, diameter: 14.5, length: 50.5,
+      cathodeReaction: '2MnO₂ + 2H₂O + 2e⁻ → 2MnO(OH) + 2OH⁻',
+      anodeReaction: 'Zn + 2OH⁻ → ZnO + H₂O + 2e⁻',
+      reaction: 'Zn + 2MnO₂ + 2NH₄Cl → ZnCl₂ + Mn₂O₃ + 2NH₃ + H₂O',
+      tempMin: -18, tempMax: 55, tempOptimal: 21,
+      cycleLife: 1, selfDischarge: '2-3%/year', internalResistance: 150,
+      thermalEfficiency: 85, tempCoefficient: -1.0
+    },
+    { 
+      name: 'AAA', voltage: 1.5, capacity: 1000, chemistry: 'Alkaline', weight: 11.5, diameter: 10.5, length: 44.5,
+      cathodeReaction: '2MnO₂ + 2H₂O + 2e⁻ → 2MnO(OH) + 2OH⁻',
+      anodeReaction: 'Zn + 2OH⁻ → ZnO + H₂O + 2e⁻',
+      reaction: 'Zn + 2MnO₂ + 2NH₄Cl → ZnCl₂ + Mn₂O₃ + 2NH₃ + H₂O',
+      tempMin: -18, tempMax: 55, tempOptimal: 21,
+      cycleLife: 1, selfDischarge: '2-3%/year', internalResistance: 200,
+      thermalEfficiency: 85, tempCoefficient: -1.0
+    },
+    { 
+      name: 'D', voltage: 1.5, capacity: 12000, chemistry: 'Alkaline', weight: 135, diameter: 34.2, length: 61.5,
+      cathodeReaction: '2MnO₂ + 2H₂O + 2e⁻ → 2MnO(OH) + 2OH⁻',
+      anodeReaction: 'Zn + 2OH⁻ → ZnO + H₂O + 2e⁻',
+      reaction: 'Zn + 2MnO₂ + 2NH₄Cl → ZnCl₂ + Mn₂O₃ + 2NH₃ + H₂O',
+      tempMin: -18, tempMax: 55, tempOptimal: 21,
+      cycleLife: 1, selfDischarge: '2-3%/year', internalResistance: 100,
+      thermalEfficiency: 85, tempCoefficient: -1.0
+    },
+    { 
+      name: '9V', voltage: 9, capacity: 500, chemistry: 'Alkaline', weight: 45, diameter: 26.5, length: 48.5,
+      cathodeReaction: '6 × (2MnO₂ + 2H₂O + 2e⁻ → 2MnO(OH) + 2OH⁻)',
+      anodeReaction: '6 × (Zn + 2OH⁻ → ZnO + H₂O + 2e⁻)',
+      reaction: '6(Zn + 2MnO₂) in series',
+      tempMin: -18, tempMax: 55, tempOptimal: 21,
+      cycleLife: 1, selfDischarge: '2-3%/year', internalResistance: 1500,
+      thermalEfficiency: 85, tempCoefficient: -1.0
+    },
+    { 
+      name: 'CR2032', voltage: 3, capacity: 220, chemistry: 'Lithium', weight: 3, diameter: 20, length: 3.2,
+      cathodeReaction: 'MnO₂ + Li⁺ + e⁻ → LiMnO₂',
+      anodeReaction: 'Li → Li⁺ + e⁻',
+      reaction: 'Li + MnO₂ → LiMnO₂',
+      tempMin: -30, tempMax: 60, tempOptimal: 20,
+      cycleLife: 1, selfDischarge: '<1%/year', internalResistance: 15000,
+      thermalEfficiency: 90, tempCoefficient: -0.8
+    },
+    { 
+      name: 'LiPo Cell', voltage: 3.7, capacity: 2000, chemistry: 'Li-Po', weight: 30, diameter: null, length: null,
+      cathodeReaction: 'LiCoO₂ + xLi⁺ + xe⁻ → Li₁₋ₓCoO₂',
+      anodeReaction: 'LiₓC₆ → C₆ + xLi⁺ + xe⁻',
+      reaction: 'LiCoO₂ + C₆ ⇌ Li₁₋ₓCoO₂ + LiₓC₆',
+      tempMin: -20, tempMax: 60, tempOptimal: 25,
+      cycleLife: 300, selfDischarge: '5%/month', internalResistance: 30,
+      thermalEfficiency: 94, tempCoefficient: -0.6
+    },
+    { 
+      name: 'Custom Cell', voltage: 3.7, capacity: 3000, chemistry: 'Li-ion', weight: 48, diameter: 18.5, length: 65.2,
+      cathodeReaction: 'LiCoO₂ + xLi⁺ + xe⁻ → Li₁₋ₓCoO₂',
+      anodeReaction: 'LiₓC₆ → C₆ + xLi⁺ + xe⁻',
+      reaction: 'LiCoO₂ + C₆ ⇌ Li₁₋ₓCoO₂ + LiₓC₆',
+      tempMin: -20, tempMax: 60, tempOptimal: 20,
+      cycleLife: 500, selfDischarge: '2-3%/month', internalResistance: 45,
+      thermalEfficiency: 95, tempCoefficient: -0.5,
+      isCustom: true 
+    }
+  ];
+  let customBatteryCells = []; // Store uploaded custom cells
+  let batteryDropdownOpen = false;
+  let seriesDropdownOpen = false;
+  let parallelDropdownOpen = false;
+  let hoveredBatteryType = null;
+  let hoveredSeriesCount = null;
+  let hoveredParallelCount = null;
+  let configInputFocused = false;
+  let selectedBatteryInfo = null;
+  let cursorVisible = true;
+  
+  // Cursor blink animation
+  setInterval(() => {
+    if (configInputFocused) {
+      cursorVisible = !cursorVisible;
+      redraw();
+    }
+  }, 500);
+  
+  // Toggle switch position
+  const toggleSwitch = {
+    x: 10,
+    y: 25,
+    width: 180,
+    height: 32
+  };
+  
+  function toggleMode() {
+    currentMode = currentMode === 'Circuit Designer' ? 'Battery Pack' : 'Circuit Designer';
+    // Update current name when switching modes
+    if (currentCircuitName !== 'Multi-Module Pack: ' && !currentCircuitName.includes('Multi-Module Pack')) {
+      if (currentMode === 'Battery Pack') {
+        if (currentCircuitName === 'No Circuit') currentCircuitName = 'No Pack';
+        else if (currentCircuitName.includes('Circuit')) {
+          // Convert circuit names to pack names
+          currentCircuitName = currentCircuitName
+            .replace('Series Circuit', '3S1P Pack')
+            .replace('Parallel Circuit', '1S3P Pack')
+            .replace('Voltage Divider', '2S2P Pack')
+            .replace('Thevenin Equivalent', 'Custom Pack A')
+            .replace('Norton Equivalent', 'Custom Pack B')
+            .replace('Custom Circuit', 'Custom Pack');
+        }
+      } else {
+        if (currentCircuitName === 'No Pack') currentCircuitName = 'No Circuit';
+        else if (currentCircuitName.includes('Pack')) {
+          // Convert pack names back to circuit names
+          currentCircuitName = currentCircuitName
+            .replace('3S1P Pack', 'Series Circuit')
+            .replace('1S3P Pack', 'Parallel Circuit')
+            .replace('2S2P Pack', 'Voltage Divider')
+            .replace('Custom Pack A', 'Thevenin Equivalent')
+            .replace('Custom Pack B', 'Norton Equivalent')
+            .replace('Custom Pack', 'Custom Circuit');
+        }
+      }
+    }
+    initializeUIButtons(); // Reinitialize buttons to update labels
+    redraw();
+  }
+  
+  // Parse configuration text like "3S2P" into series and parallel counts
+  function parseConfigText() {
+    const currentModule = batteryModules[selectedModuleIndex];
+    const text = currentModule.configText.toUpperCase();
+    const match = text.match(/(\d+)S(\d+)P/);
+    if (match) {
+      currentModule.seriesCount = parseInt(match[1]) || 1;
+      currentModule.parallelCount = parseInt(match[2]) || 1;
+    }
+  }
+  
+  
+  // Load example battery pack with specified configuration
+  function loadExamplePack(series, parallel) {
+    // Clear existing elements
+    elements = [];
+    
+    const cellWidth = 40;
+    const cellHeight = 80;
+    const spacingX = 20;
+    const spacingY = 20;
+    const startX = 250;
+    const startY = 200;
+    
+    // Use the first available battery type (usually Li-ion 18650)
+    const cellInfo = batteryTypes[0];
+    const cellVoltage = cellInfo.voltage || 3.7;
+    const cellResistance = cellInfo.internalResistance || 0.05;
+    
+    const S = series;
+    const P = parallel;
+    
+    let batteryIndex = 0;
+    
+    // Draw parallel groups connected in series
+    for (let s = 0; s < S; s++) {
+      // Draw P cells in parallel for this series position
+      for (let p = 0; p < P; p++) {
+        const x = startX + s * (cellWidth + spacingX);
+        const y = startY + p * (cellHeight + spacingY);
+        
+        // Draw battery cell
+        elements.push({
+          type: 'battery',
+          x1: x,
+          y1: y,
+          x2: x,
+          y2: y + cellHeight,
+          label: `B${batteryIndex++}`,
+          value: `${cellVoltage}V`,
+          resistance: `${cellResistance} Ω`
+        });
+        
+        // Connect parallel cells with vertical wires
+        if (p > 0) {
+          // Connect negative terminals (top)
+          elements.push({
+            type: 'wire',
+            x1: x,
+            y1: y,
+            x2: x,
+            y2: y - spacingY,
+            label: '',
+            value: ''
+          });
+          
+          // Connect positive terminals (bottom)
+          elements.push({
+            type: 'wire',
+            x1: x,
+            y1: y + cellHeight,
+            x2: x,
+            y2: y + cellHeight + spacingY,
+            label: '',
+            value: ''
+          });
+        }
+      }
+      
+      // Connect series groups (except last series group)
+      if (s < S - 1) {
+        const nextX = startX + (s + 1) * (cellWidth + spacingX);
+        const currentX = startX + s * (cellWidth + spacingX);
+        // Connect positive of this group to negative of next group
+        elements.push({
+          type: 'wire',
+          x1: currentX,
+          y1: startY + cellHeight,
+          x2: nextX,
+          y2: startY,
+          label: '',
+          value: ''
+        });
+      }
+    }
+    
+    // Update circuit name
+    const totalVoltage = (cellVoltage * S).toFixed(1);
+    const packConfig = `${S}S${P}P`;
+    currentCircuitName = `${packConfig} Pack (${totalVoltage}V)`;
+    batteryCount = batteryIndex;
+    
+    circuitEdited = false;
+    redraw();
+  }
+  
+  // Generate battery pack schema
+  function generateBatterySchema() {
+    // Clear existing elements
+    elements = [];
+    
+    const cellWidth = 40;
+    const cellHeight = 80;
+    const spacingX = 20;
+    const spacingY = 20;
+    const moduleSpacingY = 150; // Space between modules
+    let startX = 200;
+    let startY = 150;
+    
+    let totalBatteryCount = 0;
+    
+    // Generate schema for each module
+    batteryModules.forEach((module, moduleIndex) => {
+      const cellInfo = batteryTypes.find(t => t.name === module.cellType);
+      if (!cellInfo) return;
+      
+      const S = module.seriesCount;
+      const P = module.parallelCount;
+      
+      // Draw parallel groups connected in series
+      for (let s = 0; s < S; s++) {
+        // Draw P cells in parallel for this series position
+        for (let p = 0; p < P; p++) {
+          const x = startX + s * (cellWidth + spacingX);
+          const y = startY + p * (cellHeight + spacingY);
+          
+          // Draw battery cell
+          elements.push({
+            type: 'battery',
+            x1: x,
+            y1: y,
+            x2: x,
+            y2: y + cellHeight,
+            label: `M${module.id}-C${s * P + p + 1}`,
+            value: `${cellInfo.voltage}V`,
+            resistance: `${cellInfo.internalResistance || 0.05} Ω`
+          });
+          
+          // Connect parallel cells with horizontal wires (except last in parallel group)
+          if (p > 0) {
+            // Connect negative terminals
+            elements.push({
+              type: 'wire',
+              x1: x,
+              y1: y,
+              x2: x,
+              y2: y - spacingY,
+              label: '',
+              value: ''
+            });
+            
+            // Connect positive terminals
+            elements.push({
+              type: 'wire',
+              x1: x,
+              y1: y + cellHeight,
+              x2: x,
+              y2: y + cellHeight + spacingY,
+              label: '',
+              value: ''
+            });
+          }
+        }
+        
+        // Connect series groups (except last series group)
+        if (s < S - 1) {
+          const nextX = startX + (s + 1) * (cellWidth + spacingX);
+          // Connect positive of this group to negative of next group
+          elements.push({
+            type: 'wire',
+            x1: startX + s * (cellWidth + spacingX),
+            y1: startY + cellHeight,
+            x2: nextX,
+            y2: startY,
+            label: '',
+            value: ''
+          });
+        }
+      }
+      
+      totalBatteryCount += S * P;
+      
+      // Update startY for next module
+      startY += Math.max(P * (cellHeight + spacingY), cellHeight) + moduleSpacingY;
+    });
+    
+    batteryCount = totalBatteryCount;
+    circuitEdited = true;
+    
+    // Create circuit name from all modules
+    const moduleConfigs = batteryModules.map(m => `${m.configText} ${m.cellType}`).join(' + ');
+    currentCircuitName = `Multi-Module Pack: ${moduleConfigs}`;
+    redraw();
+  }
   
   // Initialize UI buttons
   function initializeUIButtons() {
@@ -571,22 +1371,23 @@
     
     // Left toolbar buttons (drawing tools)
     const toolButtons = [
-      { label: 'Select Component', action: () => setTool('select'), tool: 'select' },
-      { label: 'Select Node', action: () => setTool('selectNode'), tool: 'selectNode' },
-      { label: 'Select Area', action: () => setTool('selectArea'), tool: 'selectArea' },
-      { label: 'Move', action: () => setTool('move'), tool: 'move' },
-      { label: 'Wire', action: () => setTool('wire'), tool: 'wire' },
-      { label: 'Resistor', action: () => setTool('resistor'), tool: 'resistor' },
-      { label: 'Capacitor', action: () => setTool('capacitor'), tool: 'capacitor' },
-      { label: 'Inductor', action: () => setTool('inductor'), tool: 'inductor' },
-      { label: 'Diode', action: () => setTool('diode'), tool: 'diode' },
-      { label: 'Battery', action: () => setTool('battery'), tool: 'battery' },
-      { label: 'Erase', action: () => setTool('erase'), tool: 'erase' },
+      { label: '👆 Select Item', action: () => setTool('select'), tool: 'select' },
+      { label: '◉ Select Node', action: () => setTool('selectNode'), tool: 'selectNode' },
+      { label: '⬚ Select Area', action: () => setTool('selectArea'), tool: 'selectArea' },
+      { label: '✥ Move', action: () => setTool('move'), tool: 'move' },
+      { label: '🗑 Erase', action: () => setTool('erase'), tool: 'erase', isRed: true },
       { label: '---', action: null, tool: null }, // Separator
-      { label: 'Pan', action: () => setTool('pan'), tool: 'pan' },
-      { label: 'Zoom In', action: zoomIn, tool: null },
-      { label: 'Zoom Out', action: zoomOut, tool: null },
-      { label: 'Reset Zoom', action: resetZoom, tool: null }
+      { label: '━ Wire', action: () => setTool('wire'), tool: 'wire' },
+      { label: '⊏⊐ Resistor', action: () => setTool('resistor'), tool: 'resistor' },
+      { label: '⊢⊣ Capacitor', action: () => setTool('capacitor'), tool: 'capacitor' },
+      { label: '⊂⊃ Inductor', action: () => setTool('inductor'), tool: 'inductor' },
+      { label: '▷| Diode', action: () => setTool('diode'), tool: 'diode' },
+      { label: '⊕⊖ Battery', action: () => setTool('battery'), tool: 'battery' },
+      { label: '---', action: null, tool: null }, // Separator
+      { label: '✋ Pan', action: () => setTool('pan'), tool: 'pan' },
+      { label: '🔍+ Zoom In', action: zoomIn, tool: null },
+      { label: '🔍− Zoom Out', action: zoomOut, tool: null },
+      { label: '↻ Reset Zoom', action: resetZoom, tool: null }
     ];
     
     uiButtons.leftToolbar = toolButtons.map((btn, i) => ({
@@ -597,7 +1398,8 @@
       label: btn.label,
       action: btn.action,
       tool: btn.tool,
-      isSeparator: btn.label === '---'
+      isSeparator: btn.label === '---',
+      isRed: btn.isRed || false
     }));
     
     console.log('Left toolbar buttons created:', uiButtons.leftToolbar.length);
@@ -627,8 +1429,16 @@
       { x: canvas.width - 110, y: 10, width: 90, height: 30, label: 'Import', action: importCircuit }
     ];
     
-    // Bottom circuits buttons (centered)
-    const circuitButtons = [
+    // Bottom circuits buttons (centered) - labels change based on mode
+    const circuitButtons = currentMode === 'Battery Pack' ? [
+      { label: 'Next Pack', action: cycleCircuit },
+      { label: '3S1P', action: () => loadExamplePack(3, 1) },
+      { label: '1S3P', action: () => loadExamplePack(1, 3) },
+      { label: '2S2P', action: () => loadExamplePack(2, 2) },
+      { label: 'Custom A', action: () => loadExamplePack(4, 1) },
+      { label: 'Custom B', action: () => loadExamplePack(2, 3) },
+      { label: 'Clear', action: clearCanvas, isRed: true }
+    ] : [
       { label: 'Next Circuit', action: cycleCircuit },
       { label: 'Series', action: () => loadDefaultCircuit('series') },
       { label: 'Parallel', action: () => loadDefaultCircuit('parallel') },
@@ -641,14 +1451,16 @@
     // Calculate total width of buttons to center them
     let totalWidth = 0;
     circuitButtons.forEach((btn, i) => {
-      const width = btn.label === 'Next Circuit' ? 110 : (btn.label === 'Clear' ? 80 : 85);
+      const firstBtnWidth = currentMode === 'Battery Pack' ? 95 : 110;
+      const width = (i === 0) ? firstBtnWidth : (btn.label === 'Clear' ? 80 : 85);
       totalWidth += width + (i > 0 ? 8 : 0); // Add gap except for first button
     });
     
     let bottomY = canvas.height - UI.bottomCircuits.height + 50; // Move buttons down to make room for title and circuit name
     let bottomX = (canvas.width - totalWidth) / 2; // Center the buttons
     uiButtons.bottomCircuits = circuitButtons.map((btn, i) => {
-      const width = btn.label === 'Next Circuit' ? 110 : (btn.label === 'Clear' ? 80 : 85);
+      const firstBtnWidth = currentMode === 'Battery Pack' ? 95 : 110;
+      const width = (i === 0) ? firstBtnWidth : (btn.label === 'Clear' ? 80 : 85);
       const result = {
         x: bottomX,
         y: bottomY,
@@ -704,7 +1516,7 @@
       selectedNode = null;
       selectedComponent = null; // Clear selected component
       circuitEdited = false; // Reset edit flag when clearing
-      currentCircuitName = 'No Circuit';
+      currentCircuitName = currentMode === 'Battery Pack' ? 'No Pack' : 'No Circuit';
       redraw();
     }
 
@@ -907,7 +1719,7 @@
       if (label || value) drawLabelAndValue(x1, y1, x2, y2, label, value);
     }
     
-    function drawBattery(x1, y1, x2, y2, label, value) {
+    function drawBattery(x1, y1, x2, y2, label, value, resistance) {
       // Draw a battery symbol between (x1, y1) and (x2, y2)
       const dx = x2 - x1, dy = y2 - y1;
       const len = Math.sqrt(dx*dx + dy*dy);
@@ -939,7 +1751,39 @@
       ctx.lineWidth = 2;
       ctx.stroke();
       ctx.restore();
-      if (label || value) drawLabelAndValue(x1, y1, x2, y2, label, value);
+      // Draw label, value, and resistance
+      if (label || value || resistance) {
+        drawBatteryLabels(x1, y1, x2, y2, label, value, resistance);
+      }
+    }
+    
+    function drawBatteryLabels(x1, y1, x2, y2, label, value, resistance) {
+      // Draw label, value, and resistance for battery
+      const mx = (x1 + x2) / 2;
+      const my = (y1 + y2) / 2;
+      // Offset perpendicular to the element
+      const dx = x2 - x1, dy = y2 - y1;
+      const len = Math.sqrt(dx*dx + dy*dy);
+      let ox = 0, oy = 0;
+      if (len > 0) {
+        ox = -dy / len * 25; // perpendicular offset
+        oy = dx / len * 25;
+      }
+      ctx.save();
+      ctx.font = '14px Arial';
+      ctx.fillStyle = '#333';
+      ctx.textAlign = 'center';
+      // Label above
+      if (label) ctx.fillText(label, mx + ox, my + oy - 8);
+      // Value in middle
+      if (value) ctx.fillText(value, mx + ox, my + oy + 8);
+      // Resistance below (in smaller font)
+      if (resistance) {
+        ctx.font = '12px Arial';
+        ctx.fillStyle = '#666';
+        ctx.fillText('r: ' + resistance, mx + ox, my + oy + 22);
+      }
+      ctx.restore();
     }
     function drawLabelAndValue(x1, y1, x2, y2, label, value) {
       // Draw label and value offset from the center of the element
@@ -1039,7 +1883,7 @@
         if (el.type === 'capacitor') drawCapacitor(el.x1, el.y1, el.x2, el.y2, el.label, el.value);
         if (el.type === 'inductor') drawInductor(el.x1, el.y1, el.x2, el.y2, el.label, el.value);
         if (el.type === 'diode') drawDiode(el.x1, el.y1, el.x2, el.y2, el.label, el.value);
-        if (el.type === 'battery') drawBattery(el.x1, el.y1, el.x2, el.y2, el.label, el.value);
+        if (el.type === 'battery') drawBattery(el.x1, el.y1, el.x2, el.y2, el.label, el.value, el.resistance);
       }
       // Draw selected node highlight
       if (selectedNode && tool === 'selectNode') {
@@ -1121,10 +1965,18 @@
       ctx.font = 'bold 24px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('Circuit Designer', canvas.width / 2, 25);
+      ctx.fillText(currentMode, canvas.width / 2, 30);
       
-      // Draw all buttons
-      drawButtons(uiButtons.leftToolbar, 'toolbar');
+      // Draw toggle switch
+      drawToggleSwitch();
+      
+      // Draw all buttons based on mode
+      if (currentMode === 'Circuit Designer') {
+        drawButtons(uiButtons.leftToolbar, 'toolbar');
+      } else {
+        drawBatteryPackUI();
+      }
+      
       drawButtons(uiButtons.rightSidebar, 'normal');
       drawButtons(uiButtons.topBar, 'normal');
       drawButtons(uiButtons.bottomCircuits, 'normal');
@@ -1152,10 +2004,13 @@
         
         const isHovered = (hoveredButton === btn);
         const isActive = (type === 'toolbar' && tool === btn.tool);
+        const isToggle = (type === 'toggle');
         
         // Button background
         if (btn.isRed) {
           ctx.fillStyle = isHovered ? '#ff5252' : '#ff6b6b';
+        } else if (isToggle) {
+          ctx.fillStyle = isHovered ? '#d0d0ff' : '#e0e0ff';
         } else if (isActive) {
           ctx.fillStyle = 'purple';
         } else if (isHovered) {
@@ -1167,16 +2022,649 @@
         ctx.fillRect(btn.x, btn.y, btn.width, btn.height);
         
         // Button border
-        ctx.strokeStyle = isActive ? '#6a0dad' : '#bbb';
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = isToggle ? '#6a0dad' : (isActive ? '#6a0dad' : '#bbb');
+        ctx.lineWidth = isToggle ? 2 : 1;
         ctx.strokeRect(btn.x, btn.y, btn.width, btn.height);
         
         // Button text
-        ctx.fillStyle = (isActive || btn.isRed) ? (btn.isRed ? '#fff' : '#000') : '#333';
-        ctx.font = '14px Arial';
+        ctx.fillStyle = (isActive || btn.isRed || isToggle) ? (btn.isRed ? '#fff' : '#000') : '#333';
+        ctx.font = isToggle ? 'bold 14px Arial' : '14px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(btn.label, btn.x + btn.width / 2, btn.y + btn.height / 2);
+      }
+    }
+    
+    // Draw toggle switch
+    function drawToggleSwitch() {
+      const ts = toggleSwitch;
+      const isOn = currentMode === 'Battery Pack';
+      
+      // Label above toggle
+      ctx.fillStyle = '#333';
+      ctx.font = 'bold 13px Arial';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText(isOn ? 'Battery Pack' : 'Circuit Designer', ts.x, ts.y - 20);
+      
+      // Background track
+      ctx.fillStyle = isOn ? '#6a0dad' : '#ccc';
+      ctx.beginPath();
+      ctx.roundRect(ts.x, ts.y, ts.width, ts.height, ts.height / 2);
+      ctx.fill();
+      
+      // Sliding knob
+      const knobX = isOn ? ts.x + ts.width - ts.height : ts.x;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(knobX + ts.height / 2, ts.y + ts.height / 2, ts.height / 2 - 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#999';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    
+    // Draw Battery Pack UI
+    function drawBatteryPackUI() {
+      const x = UI.leftToolbar.x;
+      const y = UI.leftToolbar.y;
+      const w = UI.leftToolbar.width;
+      
+      const currentModule = batteryModules[selectedModuleIndex];
+      
+      // Module selector section
+      ctx.fillStyle = '#333';
+      ctx.font = 'bold 14px Arial';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText('Battery Modules:', x, y);
+      
+      // Module tabs/buttons
+      let moduleY = y + 22;
+      const moduleHeight = 32;
+      const addButtonWidth = 40;
+      
+      // Draw module selection buttons
+      for (let i = 0; i < batteryModules.length; i++) {
+        const moduleX = x + (i % 3) * (w / 3);
+        const moduleRowY = moduleY + Math.floor(i / 3) * (moduleHeight + 5);
+        const moduleW = Math.min(w / 3 - 5, 55);
+        
+        // Module button
+        ctx.fillStyle = i === selectedModuleIndex ? '#ff6600' : '#f5f5f5';
+        ctx.fillRect(moduleX, moduleRowY, moduleW, moduleHeight);
+        ctx.strokeStyle = i === selectedModuleIndex ? '#ff6600' : '#ccc';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(moduleX, moduleRowY, moduleW, moduleHeight);
+        
+        // Module text
+        ctx.fillStyle = i === selectedModuleIndex ? '#fff' : '#333';
+        ctx.font = 'bold 11px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`M${batteryModules[i].id}`, moduleX + moduleW / 2, moduleRowY + moduleHeight / 2);
+        
+        // Delete button (x) for modules > 1
+        if (batteryModules.length > 1) {
+          const deleteX = moduleX + moduleW - 14;
+          const deleteY = moduleRowY + 4;
+          ctx.fillStyle = i === selectedModuleIndex ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.1)';
+          ctx.beginPath();
+          ctx.arc(deleteX + 6, deleteY + 6, 8, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.strokeStyle = i === selectedModuleIndex ? '#fff' : '#666';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(deleteX + 3, deleteY + 3);
+          ctx.lineTo(deleteX + 9, deleteY + 9);
+          ctx.moveTo(deleteX + 9, deleteY + 3);
+          ctx.lineTo(deleteX + 3, deleteY + 9);
+          ctx.stroke();
+        }
+      }
+      
+      // Add module button
+      const addModuleRow = Math.floor(batteryModules.length / 3);
+      const addModuleCol = batteryModules.length % 3;
+      const addButtonX = x + addModuleCol * (w / 3);
+      const addButtonY = moduleY + addModuleRow * (moduleHeight + 5);
+      const addButtonW = Math.min(w / 3 - 5, 55);
+      
+      ctx.fillStyle = '#e8f4f8';
+      ctx.fillRect(addButtonX, addButtonY, addButtonW, moduleHeight);
+      ctx.strokeStyle = '#5aaeFF';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 3]);
+      ctx.strokeRect(addButtonX, addButtonY, addButtonW, moduleHeight);
+      ctx.setLineDash([]);
+      
+      ctx.fillStyle = '#5aaeFF';
+      ctx.font = 'bold 20px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('+', addButtonX + addButtonW / 2, addButtonY + moduleHeight / 2);
+      
+      // Calculate next Y position for battery type section
+      const nextSectionY = addButtonY + moduleHeight + 15;
+      
+      // Section title
+      ctx.fillStyle = '#333';
+      ctx.font = 'bold 14px Arial';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText('Battery Type:', x, nextSectionY);
+      
+      // Dropdown button
+      const dropdownY = nextSectionY + 20;
+      ctx.fillStyle = batteryDropdownOpen ? '#e0e0e0' : '#fafafa';
+      ctx.fillRect(x, dropdownY, w, 30);
+      ctx.strokeStyle = '#bbb';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x, dropdownY, w, 30);
+      
+      ctx.fillStyle = '#333';
+      ctx.font = '14px Arial';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(currentModule.cellType, x + 10, dropdownY + 15);
+      
+      // Dropdown arrow
+      ctx.fillStyle = '#666';
+      ctx.beginPath();
+      ctx.moveTo(x + w - 20, dropdownY + 10);
+      ctx.lineTo(x + w - 10, dropdownY + 20);
+      ctx.lineTo(x + w - 30, dropdownY + 20);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Configuration section
+      const configY = dropdownY + 60;
+      ctx.fillStyle = '#333';
+      ctx.font = 'bold 14px Arial';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText('Configuration:', x, configY);
+      
+      // Series dropdown
+      const seriesY = configY + 20;
+      ctx.fillStyle = '#333';
+      ctx.font = '12px Arial';
+      ctx.fillText('Series:', x, seriesY);
+      
+      const seriesDropdownY = seriesY + 18;
+      ctx.fillStyle = seriesDropdownOpen ? '#e0e0e0' : '#fafafa';
+      ctx.fillRect(x, seriesDropdownY, w, 28);
+      ctx.strokeStyle = '#bbb';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x, seriesDropdownY, w, 28);
+      
+      ctx.fillStyle = '#333';
+      ctx.font = '14px Arial';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`${currentModule.seriesCount} cells`, x + 10, seriesDropdownY + 14);
+      
+      // Dropdown arrow for series
+      ctx.fillStyle = '#666';
+      ctx.beginPath();
+      ctx.moveTo(x + w - 18, seriesDropdownY + 10);
+      ctx.lineTo(x + w - 10, seriesDropdownY + 18);
+      ctx.lineTo(x + w - 26, seriesDropdownY + 18);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Parallel dropdown
+      const parallelY = seriesDropdownY + 38;
+      ctx.fillStyle = '#333';
+      ctx.font = '12px Arial';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText('Parallel:', x, parallelY);
+      
+      const parallelDropdownY = parallelY + 18;
+      ctx.fillStyle = parallelDropdownOpen ? '#e0e0e0' : '#fafafa';
+      ctx.fillRect(x, parallelDropdownY, w, 28);
+      ctx.strokeStyle = '#bbb';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x, parallelDropdownY, w, 28);
+      
+      ctx.fillStyle = '#333';
+      ctx.font = '14px Arial';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`${currentModule.parallelCount} cells`, x + 10, parallelDropdownY + 14);
+      
+      // Dropdown arrow for parallel
+      ctx.fillStyle = '#666';
+      ctx.beginPath();
+      ctx.moveTo(x + w - 18, parallelDropdownY + 10);
+      ctx.lineTo(x + w - 10, parallelDropdownY + 18);
+      ctx.lineTo(x + w - 26, parallelDropdownY + 18);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Update config text
+      currentModule.configText = `${currentModule.seriesCount}S${currentModule.parallelCount}P`;
+      
+      // Pack summary
+      const summaryY = parallelDropdownY + 45;
+      const cellInfo = batteryTypes.find(t => t.name === currentModule.cellType);
+      if (cellInfo) {
+        ctx.fillStyle = '#333';
+        ctx.font = 'bold 13px Arial';
+        ctx.fillText(`Module ${currentModule.id} Summary:`, x, summaryY);
+        
+        const totalVoltage = cellInfo.voltage * currentModule.seriesCount;
+        const totalCapacity = cellInfo.capacity * currentModule.parallelCount;
+        const totalCells = currentModule.seriesCount * currentModule.parallelCount;
+        const totalWeight = cellInfo.weight * totalCells;
+        
+        let lineY = summaryY + 18;
+        const lineHeight = 15;
+        
+        ctx.font = '12px Arial';
+        ctx.fillStyle = '#444';
+        ctx.fillText(`Config: ${currentModule.configText}`, x, lineY); lineY += lineHeight;
+        ctx.fillText(`Voltage: ${totalVoltage.toFixed(1)}V`, x, lineY); lineY += lineHeight;
+        ctx.fillText(`Capacity: ${totalCapacity}mAh`, x, lineY); lineY += lineHeight;
+        ctx.fillText(`Cells: ${totalCells} total`, x, lineY); lineY += lineHeight;
+        ctx.fillText(`Weight: ${totalWeight.toFixed(1)}g`, x, lineY); lineY += lineHeight;
+        ctx.fillText(`Chemistry: ${cellInfo.chemistry}`, x, lineY); lineY += lineHeight;
+        
+        // Show custom chemistry description if available
+        if (cellInfo.customChemistryDescription) {
+          ctx.font = '10px Arial';
+          ctx.fillStyle = '#666';
+          ctx.fillText(`  (${cellInfo.customChemistryDescription})`, x, lineY); lineY += 12;
+          ctx.font = '12px Arial';
+          ctx.fillStyle = '#444';
+        }
+        
+        // Additional technical details
+        ctx.fillStyle = '#333';
+        ctx.font = 'bold 12px Arial';
+        lineY += 5;
+        ctx.fillText('Technical Details:', x, lineY); lineY += lineHeight;
+        
+        ctx.font = '11px Arial';
+        ctx.fillStyle = '#555';
+        if (cellInfo.tempMin !== undefined && cellInfo.tempMax !== undefined) {
+          ctx.fillText(`Temp Range: ${cellInfo.tempMin}°C to ${cellInfo.tempMax}°C`, x, lineY); lineY += lineHeight;
+        }
+        if (cellInfo.tempOptimal !== undefined) {
+          ctx.fillText(`Optimal Temp: ${cellInfo.tempOptimal}°C`, x, lineY); lineY += lineHeight;
+        }
+        if (cellInfo.cycleLife !== undefined) {
+          ctx.fillText(`Cycle Life: ${cellInfo.cycleLife} cycles`, x, lineY); lineY += lineHeight;
+        }
+        if (cellInfo.selfDischarge !== undefined) {
+          ctx.fillText(`Self-Discharge: ${cellInfo.selfDischarge}`, x, lineY); lineY += lineHeight;
+        }
+        if (cellInfo.internalResistance !== undefined) {
+          ctx.fillText(`Internal R: ${cellInfo.internalResistance}mΩ`, x, lineY); lineY += lineHeight;
+        }
+        
+        // Electrochemical reactions
+        if (cellInfo.cathodeReaction || cellInfo.anodeReaction || cellInfo.reaction) {
+          ctx.fillStyle = '#333';
+          ctx.font = 'bold 11px Arial';
+          lineY += 5;
+          ctx.fillText('Electrochemical Reactions:', x, lineY); lineY += lineHeight;
+          
+          ctx.font = '10px Arial';
+          const maxWidth = w - 10;
+          
+          // Cathode reaction (reduction during discharge)
+          if (cellInfo.cathodeReaction) {
+            ctx.fillStyle = '#d63031';
+            ctx.font = 'bold 10px Arial';
+            ctx.fillText('Cathode (Reduction):', x, lineY); lineY += 12;
+            
+            ctx.font = '10px Arial';
+            ctx.fillStyle = '#666';
+            const words = cellInfo.cathodeReaction.split(' ');
+            let line = '';
+            for (let i = 0; i < words.length; i++) {
+              const testLine = line + words[i] + ' ';
+              const metrics = ctx.measureText(testLine);
+              if (metrics.width > maxWidth && i > 0) {
+                ctx.fillText(line, x, lineY);
+                lineY += 12;
+                line = words[i] + ' ';
+              } else {
+                line = testLine;
+              }
+            }
+            ctx.fillText(line, x, lineY);
+            lineY += 12;
+          }
+          
+          // Anode reaction (oxidation during discharge)
+          if (cellInfo.anodeReaction) {
+            ctx.fillStyle = '#0984e3';
+            ctx.font = 'bold 10px Arial';
+            ctx.fillText('Anode (Oxidation):', x, lineY); lineY += 12;
+            
+            ctx.font = '10px Arial';
+            ctx.fillStyle = '#666';
+            const words = cellInfo.anodeReaction.split(' ');
+            let line = '';
+            for (let i = 0; i < words.length; i++) {
+              const testLine = line + words[i] + ' ';
+              const metrics = ctx.measureText(testLine);
+              if (metrics.width > maxWidth && i > 0) {
+                ctx.fillText(line, x, lineY);
+                lineY += 12;
+                line = words[i] + ' ';
+              } else {
+                line = testLine;
+              }
+            }
+            ctx.fillText(line, x, lineY);
+            lineY += 12;
+          }
+          
+          // Overall reaction
+          if (cellInfo.reaction) {
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 10px Arial';
+            ctx.fillText('Overall (Discharge →, Charge ←):', x, lineY); lineY += 12;
+            
+            ctx.font = '10px Arial';
+            ctx.fillStyle = '#666';
+            const words = cellInfo.reaction.split(' ');
+            let line = '';
+            for (let i = 0; i < words.length; i++) {
+              const testLine = line + words[i] + ' ';
+              const metrics = ctx.measureText(testLine);
+              if (metrics.width > maxWidth && i > 0) {
+                ctx.fillText(line, x, lineY);
+                lineY += 12;
+                line = words[i] + ' ';
+              } else {
+                line = testLine;
+              }
+            }
+            ctx.fillText(line, x, lineY);
+            lineY += lineHeight;
+          }
+        }
+        
+        // Thermal Energy Loss Calculations
+        if (cellInfo.thermalEfficiency !== undefined || cellInfo.internalResistance !== undefined) {
+          ctx.fillStyle = '#333';
+          ctx.font = 'bold 11px Arial';
+          lineY += 5;
+          ctx.fillText('Thermal Energy Loss:', x, lineY); lineY += lineHeight;
+          
+          ctx.font = '10px Arial';
+          ctx.fillStyle = '#666';
+          
+          // Calculate energy at optimal temperature
+          const totalEnergyWh = (totalVoltage * totalCapacity) / 1000;
+          
+          // Loss due to internal resistance (at 1C discharge rate)
+          if (cellInfo.internalResistance !== undefined) {
+            const totalInternalR = (cellInfo.internalResistance * currentModule.seriesCount) / currentModule.parallelCount;
+            const dischargeCurrent = totalCapacity / 1000; // 1C rate in Amps
+            const powerLossW = Math.pow(dischargeCurrent, 2) * totalInternalR / 1000; // Convert mΩ to Ω
+            const energyLossWh = powerLossW * 1; // 1 hour discharge
+            const resistanceLossPercent = (energyLossWh / totalEnergyWh) * 100;
+            
+            ctx.fillText(`I²R Loss (1C): ${energyLossWh.toFixed(2)}Wh (${resistanceLossPercent.toFixed(1)}%)`, x, lineY);
+            lineY += 12;
+          }
+          
+          // Thermal efficiency loss
+          if (cellInfo.thermalEfficiency !== undefined) {
+            const efficiencyLossPercent = 100 - cellInfo.thermalEfficiency;
+            const efficiencyLossWh = totalEnergyWh * (efficiencyLossPercent / 100);
+            
+            ctx.fillText(`Heat Loss: ${efficiencyLossWh.toFixed(2)}Wh (${efficiencyLossPercent.toFixed(1)}%)`, x, lineY);
+            lineY += 12;
+          }
+          
+          // Temperature-dependent capacity loss
+          if (cellInfo.tempCoefficient !== undefined && cellInfo.tempOptimal !== undefined) {
+            ctx.fillText(`Temp Coeff: ${cellInfo.tempCoefficient}%/°C from ${cellInfo.tempOptimal}°C`, x, lineY);
+            lineY += 12;
+            
+            // Example at different temperatures
+            const coldTemp = 0;
+            const hotTemp = 40;
+            const coldTempDiff = coldTemp - cellInfo.tempOptimal;
+            const hotTempDiff = hotTemp - cellInfo.tempOptimal;
+            const coldCapacityLoss = Math.abs(coldTempDiff * cellInfo.tempCoefficient);
+            const hotCapacityLoss = Math.abs(hotTempDiff * cellInfo.tempCoefficient);
+            
+            ctx.fillText(`  @ ${coldTemp}°C: -${coldCapacityLoss.toFixed(1)}% capacity`, x, lineY);
+            lineY += 12;
+            ctx.fillText(`  @ ${hotTemp}°C: -${hotCapacityLoss.toFixed(1)}% capacity`, x, lineY);
+            lineY += 12;
+          }
+          
+          // Total thermal energy available (accounting for efficiency)
+          if (cellInfo.thermalEfficiency !== undefined) {
+            const usableEnergyWh = totalEnergyWh * (cellInfo.thermalEfficiency / 100);
+            ctx.fillStyle = '#d00';
+            ctx.font = 'bold 10px Arial';
+            ctx.fillText(`Usable Energy:`, x, lineY);
+            lineY += 12;
+            ctx.fillText(`${usableEnergyWh.toFixed(2)}Wh @ optimal temp`, x, lineY);
+            lineY += lineHeight;
+          }
+        }
+        
+        // Generate Schema Button
+        const buttonY = lineY + 10;
+        const buttonHeight = 35;
+        const isHovered = hoveredButton && hoveredButton.label === 'Generate Schema';
+        
+        ctx.fillStyle = isHovered ? '#5a00ad' : '#6a0dad';
+        ctx.fillRect(x, buttonY, w, buttonHeight);
+        ctx.strokeStyle = '#4a009d';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, buttonY, w, buttonHeight);
+        
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 14px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Generate Schema', x + w / 2, buttonY + buttonHeight / 2);
+        
+        // Store button info for click detection
+        if (!uiButtons.generateSchema) {
+          uiButtons.generateSchema = [];
+        }
+        uiButtons.generateSchema[0] = {
+          x: x,
+          y: buttonY,
+          width: w,
+          height: buttonHeight,
+          label: 'Generate Schema',
+          action: generateBatterySchema
+        };
+        
+        // Add editing tools section
+        let toolY = buttonY + buttonHeight + 20;
+        
+        // Section header
+        ctx.fillStyle = '#333';
+        ctx.font = 'bold 13px Arial';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('Editing Tools:', x, toolY);
+        toolY += 20;
+        
+        // Define editing tool buttons
+        const editingTools = [
+          { label: '👆 Select Item', tool: 'select' },
+          { label: '⬚ Select Area', tool: 'selectArea' },
+          { label: '✥ Move', tool: 'move' },
+          { label: '🗑 Erase', tool: 'erase', isRed: true }
+        ];
+        
+        // Draw editing tool buttons
+        const toolButtonHeight = 32;
+        const toolButtonGap = 4;
+        
+        if (!uiButtons.batteryEditTools) {
+          uiButtons.batteryEditTools = [];
+        }
+        
+        editingTools.forEach((toolBtn, i) => {
+          const btnY = toolY + i * (toolButtonHeight + toolButtonGap);
+          const isToolHovered = hoveredButton && hoveredButton.tool === toolBtn.tool;
+          const isToolActive = tool === toolBtn.tool;
+          
+          // Button background
+          if (toolBtn.isRed) {
+            ctx.fillStyle = isToolHovered ? '#ff5252' : '#ff6b6b';
+          } else if (isToolActive) {
+            ctx.fillStyle = 'purple';
+          } else if (isToolHovered) {
+            ctx.fillStyle = '#e0e0e0';
+          } else {
+            ctx.fillStyle = '#fafafa';
+          }
+          
+          ctx.fillRect(x, btnY, w, toolButtonHeight);
+          
+          // Button border
+          ctx.strokeStyle = isToolActive ? '#6a0dad' : '#bbb';
+          ctx.lineWidth = isToolActive ? 2 : 1;
+          ctx.strokeRect(x, btnY, w, toolButtonHeight);
+          
+          // Button text
+          ctx.fillStyle = (isToolActive || toolBtn.isRed) ? (toolBtn.isRed ? '#fff' : '#fff') : '#333';
+          ctx.font = '13px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(toolBtn.label, x + w / 2, btnY + toolButtonHeight / 2);
+          
+          // Store button for click detection
+          uiButtons.batteryEditTools[i] = {
+            x: x,
+            y: btnY,
+            width: w,
+            height: toolButtonHeight,
+            label: toolBtn.label,
+            tool: toolBtn.tool,
+            action: () => setTool(toolBtn.tool)
+          };
+        });
+      }
+      
+      // Draw dropdown options LAST so they appear on top of everything
+      if (batteryDropdownOpen) {
+        // Recalculate positions for dropdown
+        const moduleY = y + 22;
+        const moduleHeight = 32;
+        const addModuleRow = Math.floor(batteryModules.length / 3);
+        const addButtonY = moduleY + addModuleRow * (moduleHeight + 5);
+        const nextSectionY = addButtonY + moduleHeight + 15;
+        const dropdownY = nextSectionY + 20;
+        
+        const dropdownHeight = batteryTypes.length * 30;
+        ctx.fillStyle = '#f8f8f8';
+        ctx.fillRect(x, dropdownY + 30, w, dropdownHeight);
+        ctx.strokeStyle = '#888';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, dropdownY + 30, w, dropdownHeight);
+        
+        batteryTypes.forEach((type, i) => {
+          const optionY = dropdownY + 30 + i * 30;
+          if (hoveredBatteryType === type.name) {
+            ctx.fillStyle = '#e0e0ff';
+            ctx.fillRect(x, optionY, w, 30);
+          }
+          
+          ctx.fillStyle = '#333';
+          ctx.font = '12px Arial';
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(`${type.name}`, x + 10, optionY + 10);
+          ctx.fillStyle = '#666';
+          ctx.font = '10px Arial';
+          ctx.fillText(`${type.voltage}V ${type.capacity}mAh ${type.chemistry}`, x + 10, optionY + 22);
+        });
+      }
+      
+      // Draw series dropdown options
+      if (seriesDropdownOpen) {
+        // Recalculate positions for series dropdown
+        const moduleY = y + 22;
+        const moduleHeight = 32;
+        const addModuleRow = Math.floor(batteryModules.length / 3);
+        const addButtonY = moduleY + addModuleRow * (moduleHeight + 5);
+        const nextSectionY = addButtonY + moduleHeight + 15;
+        const dropdownY = nextSectionY + 20;
+        const configY = dropdownY + 60;
+        const seriesY = configY + 20;
+        const seriesDropdownY = seriesY + 18;
+        
+        const options = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16];
+        const dropdownHeight = options.length * 28;
+        
+        ctx.fillStyle = '#f8f8f8';
+        ctx.fillRect(x, seriesDropdownY + 28, w, dropdownHeight);
+        ctx.strokeStyle = '#888';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, seriesDropdownY + 28, w, dropdownHeight);
+        
+        options.forEach((count, i) => {
+          const optionY = seriesDropdownY + 28 + i * 28;
+          if (hoveredSeriesCount === count) {
+            ctx.fillStyle = '#e0e0ff';
+            ctx.fillRect(x, optionY, w, 28);
+          }
+          
+          ctx.fillStyle = '#333';
+          ctx.font = '14px Arial';
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(`${count} cells`, x + 10, optionY + 14);
+        });
+      }
+      
+      // Draw parallel dropdown options
+      if (parallelDropdownOpen) {
+        // Recalculate positions for parallel dropdown
+        const moduleY = y + 22;
+        const moduleHeight = 32;
+        const addModuleRow = Math.floor(batteryModules.length / 3);
+        const addButtonY = moduleY + addModuleRow * (moduleHeight + 5);
+        const nextSectionY = addButtonY + moduleHeight + 15;
+        const dropdownY = nextSectionY + 20;
+        const configY = dropdownY + 60;
+        const seriesY = configY + 20;
+        const seriesDropdownY = seriesY + 18;
+        const parallelY = seriesDropdownY + 38;
+        const parallelDropdownY = parallelY + 18;
+        
+        const options = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12];
+        const dropdownHeight = options.length * 28;
+        
+        ctx.fillStyle = '#f8f8f8';
+        ctx.fillRect(x, parallelDropdownY + 28, w, dropdownHeight);
+        ctx.strokeStyle = '#888';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, parallelDropdownY + 28, w, dropdownHeight);
+        
+        options.forEach((count, i) => {
+          const optionY = parallelDropdownY + 28 + i * 28;
+          if (hoveredParallelCount === count) {
+            ctx.fillStyle = '#e0e0ff';
+            ctx.fillRect(x, optionY, w, 28);
+          }
+          
+          ctx.fillStyle = '#333';
+          ctx.font = '14px Arial';
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(`${count} cells`, x + 10, optionY + 14);
+        });
       }
     }
     
@@ -1242,17 +2730,19 @@
     function drawCurrentCircuitName() {
       const bottomY = canvas.height - UI.bottomCircuits.height;
       
-      // Draw "Example Circuits" title
+      // Draw "Example Circuits" or "Example Packs" title based on mode
       ctx.fillStyle = '#333';
       ctx.font = 'bold 16px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText('Example Circuits', canvas.width / 2, bottomY + 12);
+      const exampleTitle = currentMode === 'Battery Pack' ? 'Example Packs' : 'Example Circuits';
+      ctx.fillText(exampleTitle, canvas.width / 2, bottomY + 12);
       
-      // Draw current circuit name below title
+      // Draw current circuit/pack name below title
       ctx.fillStyle = '#ff6600';
       ctx.font = 'bold 13px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText('Current: ' + currentCircuitName, canvas.width / 2, bottomY + 30);
+      const currentLabel = currentMode === 'Battery Pack' ? 'Current Pack: ' : 'Current: ';
+      ctx.fillText(currentLabel + currentCircuitName, canvas.width / 2, bottomY + 30);
     }
     
     function drawCanvasControls() {
@@ -1285,6 +2775,187 @@
       const rect = canvas.getBoundingClientRect();
       let mx = e.clientX - rect.left;
       let my = e.clientY - rect.top;
+      
+      // Check toggle switch click
+      const ts = toggleSwitch;
+      if (mx >= ts.x && mx <= ts.x + ts.width && my >= ts.y && my <= ts.y + ts.height) {
+        toggleMode();
+        return;
+      }
+      
+      // Check Battery Pack UI interactions
+      if (currentMode === 'Battery Pack') {
+        const x = UI.leftToolbar.x;
+        const y = UI.leftToolbar.y;
+        const w = UI.leftToolbar.width;
+        
+        // Module selector handling
+        let moduleY = y + 22;
+        const moduleHeight = 32;
+        
+        // Check module button clicks
+        for (let i = 0; i < batteryModules.length; i++) {
+          const moduleX = x + (i % 3) * (w / 3);
+          const moduleRowY = moduleY + Math.floor(i / 3) * (moduleHeight + 5);
+          const moduleW = Math.min(w / 3 - 5, 55);
+          
+          if (mx >= moduleX && mx <= moduleX + moduleW && 
+              my >= moduleRowY && my <= moduleRowY + moduleHeight) {
+            
+            // Check if clicking delete button
+            if (batteryModules.length > 1) {
+              const deleteX = moduleX + moduleW - 14;
+              const deleteY = moduleRowY + 4;
+              const deleteRadius = 8;
+              const distToDelete = Math.hypot(mx - (deleteX + 6), my - (deleteY + 6));
+              
+              if (distToDelete <= deleteRadius) {
+                // Delete module
+                batteryModules.splice(i, 1);
+                if (selectedModuleIndex >= batteryModules.length) {
+                  selectedModuleIndex = batteryModules.length - 1;
+                }
+                redraw();
+                return;
+              }
+            }
+            
+            // Select module
+            selectedModuleIndex = i;
+            redraw();
+            return;
+          }
+        }
+        
+        // Check add module button click
+        const addModuleRow = Math.floor(batteryModules.length / 3);
+        const addModuleCol = batteryModules.length % 3;
+        const addButtonX = x + addModuleCol * (w / 3);
+        const addButtonY = moduleY + addModuleRow * (moduleHeight + 5);
+        const addButtonW = Math.min(w / 3 - 5, 55);
+        
+        if (mx >= addButtonX && mx <= addButtonX + addButtonW && 
+            my >= addButtonY && my <= addButtonY + moduleHeight) {
+          // Add new module
+          batteryModules.push({
+            id: nextModuleId++,
+            name: `Module ${nextModuleId - 1}`,
+            cellType: '18650',
+            seriesCount: 1,
+            parallelCount: 1,
+            configText: '1S1P'
+          });
+          selectedModuleIndex = batteryModules.length - 1;
+          redraw();
+          return;
+        }
+        
+        const nextSectionY = addButtonY + moduleHeight + 15;
+        const dropdownY = nextSectionY + 20;
+        
+        // Check dropdown click
+        if (mx >= x && mx <= x + w && my >= dropdownY && my <= dropdownY + 30) {
+          batteryDropdownOpen = !batteryDropdownOpen;
+          redraw();
+          return;
+        }
+        
+        // Check dropdown options click
+        if (batteryDropdownOpen && mx >= x && mx <= x + w) {
+          const optionIndex = Math.floor((my - (dropdownY + 30)) / 30);
+          if (optionIndex >= 0 && optionIndex < batteryTypes.length) {
+            const selectedBattery = batteryTypes[optionIndex].name;
+            
+            // If Custom Cell is selected, show the custom cell dialog
+            if (selectedBattery === 'Custom Cell') {
+              batteryDropdownOpen = false;
+              showCustomCellDialog();
+              redraw();
+              return;
+            }
+            
+            batteryModules[selectedModuleIndex].cellType = selectedBattery;
+            batteryDropdownOpen = false;
+            redraw();
+            return;
+          }
+        }
+        
+        // Check series dropdown click
+        const configY = dropdownY + 60;
+        const seriesY = configY + 20;
+        const seriesDropdownY = seriesY + 18;
+        if (mx >= x && mx <= x + w && my >= seriesDropdownY && my <= seriesDropdownY + 28) {
+          seriesDropdownOpen = !seriesDropdownOpen;
+          parallelDropdownOpen = false; // Close other dropdown
+          redraw();
+          return;
+        }
+        
+        // Check series dropdown options click
+        if (seriesDropdownOpen && mx >= x && mx <= x + w) {
+          const options = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16];
+          const optionIndex = Math.floor((my - (seriesDropdownY + 28)) / 28);
+          if (optionIndex >= 0 && optionIndex < options.length) {
+            batteryModules[selectedModuleIndex].seriesCount = options[optionIndex];
+            seriesDropdownOpen = false;
+            redraw();
+            return;
+          }
+        }
+        
+        // Check parallel dropdown click
+        const parallelY = seriesDropdownY + 38;
+        const parallelDropdownY = parallelY + 18;
+        if (mx >= x && mx <= x + w && my >= parallelDropdownY && my <= parallelDropdownY + 28) {
+          parallelDropdownOpen = !parallelDropdownOpen;
+          seriesDropdownOpen = false; // Close other dropdown
+          redraw();
+          return;
+        }
+        
+        // Check parallel dropdown options click
+        if (parallelDropdownOpen && mx >= x && mx <= x + w) {
+          const options = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12];
+          const optionIndex = Math.floor((my - (parallelDropdownY + 28)) / 28);
+          if (optionIndex >= 0 && optionIndex < options.length) {
+            batteryModules[selectedModuleIndex].parallelCount = options[optionIndex];
+            parallelDropdownOpen = false;
+            redraw();
+            return;
+          }
+        }
+        
+        // Check Generate Schema button click
+        if (uiButtons.generateSchema && uiButtons.generateSchema[0]) {
+          const btn = uiButtons.generateSchema[0];
+          if (isPointInButton(mx, my, btn)) {
+            btn.action();
+            return;
+          }
+        }
+        
+        // Check editing tool buttons click
+        if (uiButtons.batteryEditTools) {
+          for (const btn of uiButtons.batteryEditTools) {
+            if (isPointInButton(mx, my, btn)) {
+              btn.action();
+              redraw();
+              return;
+            }
+          }
+        }
+        
+        // Close dropdowns if clicking outside (but inside the left toolbar area)
+        if ((batteryDropdownOpen || seriesDropdownOpen || parallelDropdownOpen) &&
+            mx >= x && mx <= x + w) {
+          batteryDropdownOpen = false;
+          seriesDropdownOpen = false;
+          parallelDropdownOpen = false;
+          redraw();
+          return;
+        }
+      }
       
       // Check if clicking on any UI button (screen coordinates)
       const allButtons = [
@@ -1449,7 +3120,12 @@
           value = '5 V';
           batteryCount++;
         }
-        elements.push({ type: tool, x1: startX, y1: startY, x2: endX, y2: endY, label: label, value: value });
+        const newElement = { type: tool, x1: startX, y1: startY, x2: endX, y2: endY, label: label, value: value };
+        // Add internal resistance property for batteries
+        if (tool === 'battery') {
+          newElement.resistance = '0.1 Ω'; // Default internal resistance
+        }
+        elements.push(newElement);
         circuitEdited = true; // Mark circuit as edited
         redraw();
       }
@@ -1470,6 +3146,52 @@
         redraw();
       }
     }
+    
+    // JSON file upload handler
+    document.getElementById('jsonFileInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        try {
+          const jsonData = JSON.parse(event.target.result);
+          
+          // Validate required fields
+          if (!jsonData.name || jsonData.voltage === undefined || jsonData.capacity === undefined) {
+            alert('Invalid JSON format. Required fields: name, voltage, capacity');
+            return;
+          }
+          
+          // Populate form fields with JSON data
+          document.getElementById('customCellName').value = jsonData.name || 'Custom Cell';
+          document.getElementById('customCellVoltage').value = jsonData.voltage || 3.7;
+          document.getElementById('customCellCapacity').value = jsonData.capacity || 3000;
+          document.getElementById('customCellChemistry').value = jsonData.chemistry || 'Li-ion';
+          document.getElementById('customCellWeight').value = jsonData.weight || 48;
+          document.getElementById('customCellDiameter').value = jsonData.diameter !== undefined ? jsonData.diameter : 18.5;
+          document.getElementById('customCellLength').value = jsonData.length !== undefined ? jsonData.length : 65.2;
+          document.getElementById('customCellTempMin').value = jsonData.tempMin !== undefined ? jsonData.tempMin : -20;
+          document.getElementById('customCellTempMax').value = jsonData.tempMax !== undefined ? jsonData.tempMax : 60;
+          document.getElementById('customCellTempOptimal').value = jsonData.tempOptimal !== undefined ? jsonData.tempOptimal : 20;
+          document.getElementById('customCellTempCoeff').value = jsonData.tempCoefficient !== undefined ? jsonData.tempCoefficient : -0.5;
+          document.getElementById('customCellResistance').value = jsonData.internalResistance !== undefined ? jsonData.internalResistance : 45;
+          document.getElementById('customCellEfficiency').value = jsonData.thermalEfficiency !== undefined ? jsonData.thermalEfficiency : 95;
+          document.getElementById('customCellCycleLife').value = jsonData.cycleLife || 500;
+          document.getElementById('customCellSelfDischarge').value = jsonData.selfDischarge || '2-3%/month';
+          document.getElementById('customCellReaction').value = jsonData.reaction || 'LiCoO₂ + C₆ ⇌ Li₁₋ₓCoO₂ + LiₓC₆';
+          
+          alert(`JSON file loaded successfully! Review the values and click "Save Custom Cell" to apply.`);
+        } catch (error) {
+          alert('Error parsing JSON file: ' + error.message);
+        }
+      };
+      reader.readAsText(file);
+      
+      // Reset file input so the same file can be uploaded again
+      e.target.value = '';
+    });
+    
     window.addEventListener('keydown', function(e) {
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') {
         e.preventDefault();
@@ -1477,6 +3199,18 @@
       } else if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) {
         e.preventDefault();
         redo();
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        // Delete selected elements when Delete or Backspace is pressed
+        if (selectedElements.length > 0) {
+          e.preventDefault();
+          undoStack.push([...elements]);
+          redoStack = [];
+          // Remove all selected elements
+          elements = elements.filter(el => !selectedElements.includes(el));
+          selectedElements = [];
+          circuitEdited = true;
+          redraw();
+        }
       }
     });
     // Enable label/value editing only in select mode
@@ -1534,11 +3268,16 @@
               'Edit ' + el.type.charAt(0).toUpperCase() + el.type.slice(1),
               el.label,
               valuePrompt,
-              defaultUnit
+              defaultUnit,
+              el // Pass element reference for battery resistance handling
             ).then(result => {
               if (result !== null) {
                 el.label = result.label;
                 el.value = result.value;
+                // Update resistance for batteries
+                if (el.type === 'battery' && result.resistance !== undefined) {
+                  el.resistance = result.resistance;
+                }
                 circuitEdited = true; // Mark circuit as edited
                 redraw();
               } else {
@@ -1617,6 +3356,109 @@
       const rect = canvas.getBoundingClientRect();
       let mx = e.clientX - rect.left;
       let my = e.clientY - rect.top;
+      
+      // Check for Generate Schema button hover in Battery Pack mode
+      if (currentMode === 'Battery Pack' && uiButtons.generateSchema && uiButtons.generateSchema[0]) {
+        const btn = uiButtons.generateSchema[0];
+        if (isPointInButton(mx, my, btn)) {
+          if (hoveredButton !== btn) {
+            hoveredButton = btn;
+            redraw();
+          }
+        } else if (hoveredButton === btn) {
+          hoveredButton = null;
+          redraw();
+        }
+      }
+      
+      // Check for editing tool button hover in Battery Pack mode
+      if (currentMode === 'Battery Pack' && uiButtons.batteryEditTools) {
+        let foundHover = false;
+        for (const btn of uiButtons.batteryEditTools) {
+          if (isPointInButton(mx, my, btn)) {
+            if (hoveredButton !== btn) {
+              hoveredButton = btn;
+              redraw();
+            }
+            foundHover = true;
+            break;
+          }
+        }
+        if (!foundHover && hoveredButton && uiButtons.batteryEditTools.includes(hoveredButton)) {
+          hoveredButton = null;
+          redraw();
+        }
+      }
+      
+      // Check for dropdown hover in Battery Pack mode
+      if (currentMode === 'Battery Pack') {
+        const x = UI.leftToolbar.x;
+        const y = UI.leftToolbar.y;
+        const w = UI.leftToolbar.width;
+        
+        // Recalculate positions accounting for module selector
+        const moduleY = y + 22;
+        const moduleHeight = 32;
+        const addModuleRow = Math.floor(batteryModules.length / 3);
+        const addButtonY = moduleY + addModuleRow * (moduleHeight + 5);
+        const nextSectionY = addButtonY + moduleHeight + 15;
+        const dropdownY = nextSectionY + 20;
+        
+        // Battery type dropdown hover
+        if (batteryDropdownOpen && mx >= x && mx <= x + w) {
+          const optionIndex = Math.floor((my - (dropdownY + 30)) / 30);
+          if (optionIndex >= 0 && optionIndex < batteryTypes.length) {
+            const newHover = batteryTypes[optionIndex].name;
+            if (hoveredBatteryType !== newHover) {
+              hoveredBatteryType = newHover;
+              redraw();
+            }
+          } else if (hoveredBatteryType !== null) {
+            hoveredBatteryType = null;
+            redraw();
+          }
+        }
+        
+        // Series dropdown hover
+        if (seriesDropdownOpen && mx >= x && mx <= x + w) {
+          const configY = dropdownY + 60;
+          const seriesY = configY + 20;
+          const seriesDropdownY = seriesY + 18;
+          const options = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16];
+          const optionIndex = Math.floor((my - (seriesDropdownY + 28)) / 28);
+          if (optionIndex >= 0 && optionIndex < options.length) {
+            const newHover = options[optionIndex];
+            if (hoveredSeriesCount !== newHover) {
+              hoveredSeriesCount = newHover;
+              redraw();
+            }
+          } else if (hoveredSeriesCount !== null) {
+            hoveredSeriesCount = null;
+            redraw();
+          }
+        }
+        
+        // Parallel dropdown hover
+        if (parallelDropdownOpen && mx >= x && mx <= x + w) {
+          const configY = dropdownY + 60;
+          const seriesY = configY + 20;
+          const seriesDropdownY = seriesY + 18;
+          const parallelY = seriesDropdownY + 38;
+          const parallelDropdownY = parallelY + 18;
+          const options = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12];
+          const optionIndex = Math.floor((my - (parallelDropdownY + 28)) / 28);
+          if (optionIndex >= 0 && optionIndex < options.length) {
+            const newHover = options[optionIndex];
+            if (hoveredParallelCount !== newHover) {
+              hoveredParallelCount = newHover;
+              redraw();
+            }
+          } else if (hoveredParallelCount !== null) {
+            hoveredParallelCount = null;
+            redraw();
+          }
+        }
+      }
       
       // Check for button hover
       const allButtons = [
@@ -1711,5 +3553,7 @@
       ctx.restore();
     });
   </script>
+  <!-- Hidden file input for JSON upload -->
+  <input type="file" id="jsonFileInput" accept=".json" style="display: none;">
 </body>
 </html>
